@@ -5,6 +5,7 @@ import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperRequest;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
 import br.com.casa_moreno.casa_moreno_backend.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.dto.CreateProductRequest;
+import br.com.casa_moreno.casa_moreno_backend.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.repository.ProductRepository;
 import jakarta.transaction.Transactional;
@@ -40,8 +41,24 @@ public class ProductService {
             throw new ProductAlreadyExistsException("Product with name '" + product.getName() + "' already exists.");
         }
 
-        productRepository.save(product);
-        return product;
+        return productRepository.save(product);
+    }
+
+    @Transactional
+    public Product updateProduct(UpdateProductRequest request) {
+        Product product = productRepository.findById(request.productId())
+                .orElseThrow(() -> new ProductAlreadyExistsException("Product with ID '" + request.productId() + "' does not exist."));
+
+        if (request.name() != null) product.setName(request.name());
+        if (request.description() != null) product.setDescription(request.description());
+        if (request.brand() != null) product.setBrand(request.brand());
+        if (request.price() != null) product.setPrice(request.price());
+        if (request.category() != null) product.setCategory(request.category());
+        if (request.subCategory() != null) product.setSubCategory(request.subCategory());
+        if (request.imageUrl() != null) product.setImageUrl(request.imageUrl());
+        if (request.condition() != null) product.setCondition(request.condition());
+
+        return productRepository.save(product);
     }
 
     private boolean isProvided(String value) {
