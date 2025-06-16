@@ -15,5 +15,6 @@ public record UpdateProductRequest(
         String category,
         String subCategory,
         String imageUrl,
-        String condition) {
+        String condition,
+        String link) {
 }

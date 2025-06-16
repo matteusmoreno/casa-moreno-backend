@@ -41,6 +41,7 @@ public class ProductService {
                 .subCategory(isProvided(request.subCategory()) ? request.subCategory() : scraperResponse.subCategory())
                 .imageUrl(request.imageUrl())
                 .condition(isProvided(request.condition()) ? request.condition() : scraperResponse.condition())
+                .link(request.link())
                 .build();
 
         if (productRepository.existsByName(product.getName())) {
@@ -67,6 +68,7 @@ public class ProductService {
         if (request.subCategory() != null) product.setSubCategory(request.subCategory());
         if (request.imageUrl() != null) product.setImageUrl(request.imageUrl());
         if (request.condition() != null) product.setCondition(request.condition());
+        if (request.link() != null) product.setLink(request.link());
 
         return productRepository.save(product);
     }

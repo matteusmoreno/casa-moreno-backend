@@ -24,4 +24,5 @@ public class Product {
     private String subCategory;
     private String imageUrl;
     private String condition;
+    private String link;
 }

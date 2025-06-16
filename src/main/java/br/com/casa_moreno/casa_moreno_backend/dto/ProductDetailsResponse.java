@@ -14,7 +14,8 @@ public record ProductDetailsResponse(
         String category,
         String subCategory,
         String imageUrl,
-        String condition) {
+        String condition,
+        String link) {
 
     public ProductDetailsResponse(Product product) {
         this(
@@ -26,7 +27,8 @@ public record ProductDetailsResponse(
                 product.getCategory(),
                 product.getSubCategory(),
                 product.getImageUrl(),
-                product.getCondition()
+                product.getCondition(),
+                product.getLink()
         );
     }
 }

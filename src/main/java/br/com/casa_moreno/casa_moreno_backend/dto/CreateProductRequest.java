@@ -11,5 +11,6 @@ public record CreateProductRequest(
         String category,
         String subCategory,
         String imageUrl,
-        String condition) {
+        String condition,
+        String link) {
 }
