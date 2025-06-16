@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/products")
@@ -35,5 +36,12 @@ public class ProductController {
         Product product = productService.updateProduct(request);
 
         return ResponseEntity.ok(new ProductDetailsResponse(product));
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        productService.deleteProduct(id);
+
+        return ResponseEntity.noContent().build();
     }
 }

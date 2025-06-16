@@ -7,9 +7,12 @@ import br.com.casa_moreno.casa_moreno_backend.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
+import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.repository.ProductRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 public class ProductService {
@@ -59,6 +62,14 @@ public class ProductService {
         if (request.condition() != null) product.setCondition(request.condition());
 
         return productRepository.save(product);
+    }
+
+    @Transactional
+    public void deleteProduct(UUID productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
+
+        productRepository.delete(product);
     }
 
     private boolean isProvided(String value) {
