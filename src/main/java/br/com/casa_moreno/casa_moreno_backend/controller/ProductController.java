@@ -6,6 +6,9 @@ import br.com.casa_moreno.casa_moreno_backend.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.service.ProductService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -29,6 +32,13 @@ public class ProductController {
         URI uri = uriBuilder.path("/products/{id}").buildAndExpand(product.getProductId()).toUri();
 
         return ResponseEntity.created(uri).body(new ProductDetailsResponse(product));
+    }
+
+    @GetMapping()
+    public ResponseEntity<Page<ProductDetailsResponse>> getProductsByCategory(@PageableDefault(size = 10, sort = "name") Pageable pageable, @RequestParam("category") String category) {
+        Page<ProductDetailsResponse> products = productService.findProductsByCategory(pageable, category);
+
+        return ResponseEntity.ok(products);
     }
 
     @PutMapping("/update")

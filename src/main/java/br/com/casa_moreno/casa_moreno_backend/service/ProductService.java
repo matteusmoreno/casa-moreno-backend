@@ -5,11 +5,14 @@ import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperRequest;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
 import br.com.casa_moreno.casa_moreno_backend.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.dto.CreateProductRequest;
+import br.com.casa_moreno.casa_moreno_backend.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.repository.ProductRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
@@ -45,6 +48,10 @@ public class ProductService {
         }
 
         return productRepository.save(product);
+    }
+
+    public Page<ProductDetailsResponse> findProductsByCategory(Pageable pageable, String category) {
+        return productRepository.findAllByCategory(pageable, category).map(ProductDetailsResponse::new);
     }
 
     @Transactional
