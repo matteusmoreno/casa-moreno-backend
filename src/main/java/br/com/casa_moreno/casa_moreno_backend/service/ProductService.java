@@ -44,7 +44,6 @@ public class ProductService {
                 .discountPercentage(isProvided(request.discountPercentage()) ? request.discountPercentage() : scraperResponse.discountPercentage())
                 .installments(request.installments() != null ? request.installments() : scraperResponse.installments())
                 .installmentValue(request.installmentValue() != null ? request.installmentValue() : scraperResponse.installmentValue())
-                //.galleryImageUrls(request.galleryImageUrls() != null ? request.galleryImageUrls() : scraperResponse.galleryImageUrls())
                 .stockStatus(isProvided(request.stockStatus()) ? request.stockStatus() : scraperResponse.stockStatus())
                 .affiliateLink(request.affiliateLink())
                 .productCategory(request.productCategory())

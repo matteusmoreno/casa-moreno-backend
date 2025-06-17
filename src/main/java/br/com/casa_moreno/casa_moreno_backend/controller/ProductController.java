@@ -35,7 +35,7 @@ public class ProductController {
     }
 
     @GetMapping()
-    public ResponseEntity<Page<ProductDetailsResponse>> getProductsByCategory(@PageableDefault(size = 10, sort = "name") Pageable pageable, @RequestParam("category") String category) {
+    public ResponseEntity<Page<ProductDetailsResponse>> getProductsByCategory(@PageableDefault(size = 10, sort = "productTitle") Pageable pageable, @RequestParam("category") String category) {
         Page<ProductDetailsResponse> products = productService.findProductsByCategory(pageable, category);
 
         return ResponseEntity.ok(products);
