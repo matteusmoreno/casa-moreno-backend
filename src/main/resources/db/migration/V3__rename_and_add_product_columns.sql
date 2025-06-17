@@ -1,0 +1,11 @@
+ALTER TABLE products RENAME COLUMN name TO product_title;
+ALTER TABLE products RENAME COLUMN description TO full_description;
+ALTER TABLE products ADD COLUMN mercado_livre_id VARCHAR(255);
+ALTER TABLE products ADD COLUMN mercado_livre_url VARCHAR(255);
+ALTER TABLE products ADD COLUMN original_price NUMERIC(19, 2);
+ALTER TABLE products ADD COLUMN discount_percentage VARCHAR(20);
+ALTER TABLE products ADD COLUMN installments INTEGER;
+ALTER TABLE products ADD COLUMN installment_value NUMERIC(19, 2);
+ALTER TABLE products ADD COLUMN stock_status VARCHAR(50);
+ALTER TABLE products RENAME COLUMN category TO product_category;
+ALTER TABLE products RENAME COLUMN sub_category TO product_subcategory;

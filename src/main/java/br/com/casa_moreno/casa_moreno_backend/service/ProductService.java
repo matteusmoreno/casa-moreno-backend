@@ -30,29 +30,42 @@ public class ProductService {
 
     @Transactional
     public Product createProduct(CreateProductRequest request) {
-        MercadoLivreScraperResponse scraperResponse = mercadoLivreScraperClient.scrapeProducts(new MercadoLivreScraperRequest(request.url()));
+        MercadoLivreScraperResponse scraperResponse = mercadoLivreScraperClient.scrapeProducts(new MercadoLivreScraperRequest(request.mercadoLivreUrl()));
 
         Product product = Product.builder()
-                .name(isProvided(request.name()) ? request.name() : scraperResponse.name())
-                .description(isProvided(request.description()) ? request.description() : scraperResponse.description())
-                .brand(isProvided(request.brand()) ? request.brand() : scraperResponse.brand())
-                .price(request.price() != null ? request.price() : scraperResponse.price())
-                .category(isProvided(request.category()) ? request.category() : scraperResponse.category())
-                .subCategory(isProvided(request.subCategory()) ? request.subCategory() : scraperResponse.subCategory())
-                .imageUrl(request.imageUrl())
-                .condition(isProvided(request.condition()) ? request.condition() : scraperResponse.condition())
-                .link(request.link())
+                .mercadoLivreId(isProvided(request.mercadoLivreId()) ? request.mercadoLivreId() : scraperResponse.mercadoLivreId())
+                .mercadoLivreUrl(isProvided(request.mercadoLivreUrl()) ? request.mercadoLivreUrl() : scraperResponse.mercadoLivreUrl())
+                .productTitle(isProvided(request.productTitle()) ? request.productTitle() : scraperResponse.productTitle())
+                .fullDescription(isProvided(request.fullDescription()) ? request.fullDescription() : scraperResponse.fullDescription())
+                .productBrand(isProvided(request.productBrand()) ? request.productBrand() : scraperResponse.productBrand())
+                .productCondition(isProvided(request.productCondition()) ? request.productCondition() : scraperResponse.productCondition())
+                .currentPrice(request.currentPrice() != null ? request.currentPrice() : scraperResponse.currentPrice())
+                .originalPrice(request.originalPrice() != null ? request.originalPrice() : scraperResponse.originalPrice())
+                .discountPercentage(isProvided(request.discountPercentage()) ? request.discountPercentage() : scraperResponse.discountPercentage())
+                .installments(request.installments() != null ? request.installments() : scraperResponse.installments())
+                .installmentValue(request.installmentValue() != null ? request.installmentValue() : scraperResponse.installmentValue())
+                //.galleryImageUrls(request.galleryImageUrls() != null ? request.galleryImageUrls() : scraperResponse.galleryImageUrls())
+                .stockStatus(isProvided(request.stockStatus()) ? request.stockStatus() : scraperResponse.stockStatus())
+                .affiliateLink(request.affiliateLink())
+                .productCategory(request.productCategory())
+                .productSubcategory(request.productSubcategory())
                 .build();
 
-        if (productRepository.existsByName(product.getName())) {
-            throw new ProductAlreadyExistsException("Product with name '" + product.getName() + "' already exists.");
+        if (request.galleryImageUrls() != null && !request.galleryImageUrls().isEmpty()) {
+            product.setGalleryImageUrlsFromStrings(request.galleryImageUrls());
+        } else if (scraperResponse.galleryImageUrls() != null && !scraperResponse.galleryImageUrls().isEmpty()) {
+            product.setGalleryImageUrlsFromStrings(scraperResponse.galleryImageUrls());
+        }
+
+        if (productRepository.existsByProductTitle(product.getProductTitle()) || productRepository.existsByMercadoLivreId(product.getMercadoLivreId())) {
+            throw new ProductAlreadyExistsException("Product is already exists");
         }
 
         return productRepository.save(product);
     }
 
     public Page<ProductDetailsResponse> findProductsByCategory(Pageable pageable, String category) {
-        return productRepository.findAllByCategory(pageable, category).map(ProductDetailsResponse::new);
+        return productRepository.findAllByProductCategory(pageable, category).map(ProductDetailsResponse::new);
     }
 
     @Transactional
@@ -60,15 +73,22 @@ public class ProductService {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ProductAlreadyExistsException("Product with ID '" + request.productId() + "' does not exist."));
 
-        if (request.name() != null) product.setName(request.name());
-        if (request.description() != null) product.setDescription(request.description());
-        if (request.brand() != null) product.setBrand(request.brand());
-        if (request.price() != null) product.setPrice(request.price());
-        if (request.category() != null) product.setCategory(request.category());
-        if (request.subCategory() != null) product.setSubCategory(request.subCategory());
-        if (request.imageUrl() != null) product.setImageUrl(request.imageUrl());
-        if (request.condition() != null) product.setCondition(request.condition());
-        if (request.link() != null) product.setLink(request.link());
+        if(request.mercadoLivreId() != null) product.setMercadoLivreId(request.mercadoLivreId());
+        if(request.mercadoLivreUrl() != null) product.setMercadoLivreUrl(request.mercadoLivreUrl());
+        if(request.productTitle() != null) product.setProductTitle(request.productTitle());
+        if(request.fullDescription() != null) product.setFullDescription(request.fullDescription());
+        if(request.productBrand() != null) product.setProductBrand(request.productBrand());
+        if(request.productCondition() != null) product.setProductCondition(request.productCondition());
+        if(request.currentPrice() != null) product.setCurrentPrice(request.currentPrice());
+        if(request.originalPrice() != null) product.setOriginalPrice(request.originalPrice());
+        if(request.discountPercentage() != null) product.setDiscountPercentage(request.discountPercentage());
+        if(request.installments() != null) product.setInstallments(request.installments());
+        if(request.installmentValue() != null) product.setInstallmentValue(request.installmentValue());
+        if(request.galleryImageUrls() != null) product.setGalleryImageUrlsFromStrings(request.galleryImageUrls());
+        if(request.stockStatus() != null) product.setStockStatus(request.stockStatus());
+        if(request.affiliateLink() != null) product.setAffiliateLink(request.affiliateLink());
+        if(request.productCategory() != null) product.setProductCategory(request.productCategory());
+        if(request.productSubcategory() != null) product.setProductSubcategory(request.productSubcategory());
 
         return productRepository.save(product);
     }

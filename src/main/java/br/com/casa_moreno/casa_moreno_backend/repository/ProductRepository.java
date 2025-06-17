@@ -8,7 +8,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface ProductRepository extends JpaRepository<Product, UUID> {
-    boolean existsByName(String name);
 
-    Page<Product> findAllByCategory(Pageable pageable, String category);
+    boolean existsByProductTitle(String productTitle);
+
+    Page<Product> findAllByProductCategory(Pageable pageable, String category);
+
+    boolean existsByMercadoLivreId(String mercadoLivreId);
 }

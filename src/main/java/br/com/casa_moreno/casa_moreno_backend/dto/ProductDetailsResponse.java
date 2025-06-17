@@ -1,34 +1,58 @@
 package br.com.casa_moreno.casa_moreno_backend.dto;
 
 import br.com.casa_moreno.casa_moreno_backend.domain.Product;
+import br.com.casa_moreno.casa_moreno_backend.domain.ProductGalleryImageUrl;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public record ProductDetailsResponse(
-        UUID id,
-        String name,
-        String description,
-        String brand,
-        BigDecimal price,
-        String category,
-        String subCategory,
-        String imageUrl,
-        String condition,
-        String link) {
+        UUID productId,
+        String mercadoLivreId,
+        String mercadoLivreUrl,
+        String productTitle,
+        String fullDescription,
+        String productBrand,
+        String productCondition,
+        BigDecimal currentPrice,
+        BigDecimal originalPrice,
+        String discountPercentage,
+        Integer installments,
+        BigDecimal installmentValue,
+        List<String> galleryImageUrls,
+        String stockStatus,
+        String affiliateLink,
+        String productCategory,
+        String productSubcategory) {
 
     public ProductDetailsResponse(Product product) {
         this(
                 product.getProductId(),
-                product.getName(),
-                product.getDescription(),
-                product.getBrand(),
-                product.getPrice(),
-                product.getCategory(),
-                product.getSubCategory(),
-                product.getImageUrl(),
-                product.getCondition(),
-                product.getLink()
+                product.getMercadoLivreId(),
+                product.getMercadoLivreUrl(),
+                product.getProductTitle(),
+                product.getFullDescription(),
+                product.getProductBrand(),
+                product.getProductCondition(),
+                product.getCurrentPrice(),
+                product.getOriginalPrice(),
+                product.getDiscountPercentage(),
+                product.getInstallments(),
+                product.getInstallmentValue(),
+
+                product.getGalleryImageUrls() != null ?
+                        product.getGalleryImageUrls().stream()
+                                .map(ProductGalleryImageUrl::getImageUrl)
+                                .collect(Collectors.toList()) :
+                        Collections.emptyList(),
+
+                product.getStockStatus(),
+                product.getAffiliateLink(),
+                product.getProductCategory(),
+                product.getProductSubcategory()
         );
     }
 }
