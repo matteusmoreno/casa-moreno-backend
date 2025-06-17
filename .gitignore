@@ -34,3 +34,5 @@ build/
 
 *.pem
 *.env
+
+docker-compose.yml
