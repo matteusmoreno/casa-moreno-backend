@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/actuator/health").permitAll()
 
                         //PRODUCTS
-                        .requestMatchers("/products/find-by-category").permitAll()
+                        .requestMatchers("/products/find-by-category", "/products/categories").permitAll()
                         .requestMatchers("/products/create").hasRole("ADMIN")
                         .requestMatchers("/products/update").hasRole("ADMIN")
                         .requestMatchers("/products/delete/**").hasRole("ADMIN")

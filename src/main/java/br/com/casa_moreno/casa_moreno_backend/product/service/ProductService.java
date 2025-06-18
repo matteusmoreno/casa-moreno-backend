@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -98,6 +99,10 @@ public class ProductService {
                 .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
 
         productRepository.delete(product);
+    }
+
+    public List<String> getDistinctCategories() {
+        return productRepository.findDistinctProductCategories();
     }
 
     private boolean isProvided(String value) {
