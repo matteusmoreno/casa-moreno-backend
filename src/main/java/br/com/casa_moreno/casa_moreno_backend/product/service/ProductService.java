@@ -65,7 +65,7 @@ public class ProductService {
     }
 
     public Page<ProductDetailsResponse> findProductsByCategory(Pageable pageable, String category) {
-        return productRepository.findAllByProductCategory(pageable, category).map(ProductDetailsResponse::new);
+        return productRepository.findAllByProductCategoryIgnoreCase(pageable, category).map(ProductDetailsResponse::new);
     }
 
     @Transactional

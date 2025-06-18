@@ -13,7 +13,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     boolean existsByProductTitle(String productTitle);
 
-    Page<Product> findAllByProductCategory(Pageable pageable, String category);
+    Page<Product> findAllByProductCategoryIgnoreCase(Pageable pageable, String category);
 
     boolean existsByMercadoLivreId(String mercadoLivreId);
 
