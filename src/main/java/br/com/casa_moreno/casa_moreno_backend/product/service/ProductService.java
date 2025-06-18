@@ -1,15 +1,15 @@
-package br.com.casa_moreno.casa_moreno_backend.service;
+package br.com.casa_moreno.casa_moreno_backend.product.service;
 
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperClient;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperRequest;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
-import br.com.casa_moreno.casa_moreno_backend.domain.Product;
-import br.com.casa_moreno.casa_moreno_backend.dto.CreateProductRequest;
-import br.com.casa_moreno.casa_moreno_backend.dto.ProductDetailsResponse;
-import br.com.casa_moreno.casa_moreno_backend.dto.UpdateProductRequest;
+import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
+import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
+import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
+import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
-import br.com.casa_moreno.casa_moreno_backend.repository.ProductRepository;
+import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

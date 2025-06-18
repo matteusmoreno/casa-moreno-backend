@@ -1,4 +1,4 @@
-package br.com.casa_moreno.casa_moreno_backend.domain;
+package br.com.casa_moreno.casa_moreno_backend.product.domain;
 
 import jakarta.persistence.*;
 import lombok.*;

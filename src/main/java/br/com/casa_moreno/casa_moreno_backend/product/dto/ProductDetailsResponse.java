@@ -1,7 +1,7 @@
-package br.com.casa_moreno.casa_moreno_backend.dto;
+package br.com.casa_moreno.casa_moreno_backend.product.dto;
 
-import br.com.casa_moreno.casa_moreno_backend.domain.Product;
-import br.com.casa_moreno.casa_moreno_backend.domain.ProductGalleryImageUrl;
+import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
+import br.com.casa_moreno.casa_moreno_backend.product.domain.ProductGalleryImageUrl;
 
 import java.math.BigDecimal;
 import java.util.Collections;

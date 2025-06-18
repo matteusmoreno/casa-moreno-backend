@@ -1,4 +1,4 @@
-package br.com.casa_moreno.casa_moreno_backend.dto;
+package br.com.casa_moreno.casa_moreno_backend.product.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
