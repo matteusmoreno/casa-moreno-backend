@@ -1,10 +1,13 @@
 package br.com.casa_moreno.casa_moreno_backend.exception;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.net.ConnectException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -28,4 +31,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleBadCredentialsException(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
     }
+
+    @ExceptionHandler(ConnectException.class)
+    public ResponseEntity<String> handleConnectException(ConnectException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Failed to connect to the external service. Please try again later.");
+    }
+
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<String> handleCallNotPermittedException(CallNotPermittedException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("The scraper service is external unavailable. Please try again later.");
+    }
+
 }
