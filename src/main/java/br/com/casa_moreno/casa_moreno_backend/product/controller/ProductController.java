@@ -42,6 +42,18 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
+    @GetMapping("/list-all")
+    public ResponseEntity<List<ProductDetailsResponse>> listAllProducts() {
+        List<ProductDetailsResponse> products = productService.listAllProducts();
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductDetailsResponse> findProductById(@PathVariable UUID id) {
+        Product product = productService.findProductById(id);
+        return ResponseEntity.ok(new ProductDetailsResponse(product));
+    }
+
     @PutMapping("/update")
     public ResponseEntity<ProductDetailsResponse> update(@RequestBody @Valid UpdateProductRequest request) {
         Product product = productService.updateProduct(request);

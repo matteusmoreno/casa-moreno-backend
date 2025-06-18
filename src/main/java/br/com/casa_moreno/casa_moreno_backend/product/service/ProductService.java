@@ -3,12 +3,12 @@ package br.com.casa_moreno.casa_moreno_backend.product.service;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperClient;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperRequest;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
+import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
+import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
-import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
-import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductService {
@@ -66,6 +67,17 @@ public class ProductService {
 
     public Page<ProductDetailsResponse> findProductsByCategory(Pageable pageable, String category) {
         return productRepository.findAllByProductCategoryIgnoreCase(pageable, category).map(ProductDetailsResponse::new);
+    }
+
+    public List<ProductDetailsResponse> listAllProducts() {
+        return productRepository.findAll().stream()
+                .map(ProductDetailsResponse::new)
+                .collect(Collectors.toList());
+    }
+
+    public Product findProductById(UUID id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + id + "' does not exist."));
     }
 
     @Transactional
