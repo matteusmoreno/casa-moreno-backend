@@ -1,6 +1,5 @@
 package br.com.casa_moreno.casa_moreno_backend.login;
 
-import br.com.casa_moreno.casa_moreno_backend.exception.UserNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.user.domain.User;
 import br.com.casa_moreno.casa_moreno_backend.user.repository.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,7 +28,9 @@ public class LoginService {
     }
 
     public LoginResponse generateToken(LoginRequest loginRequest) {
-        User user = userRepository.findByUsername(loginRequest.username())
+        String loginEmailOrUsername = loginRequest.username();
+
+        User user = userRepository.findByUsernameOrEmail(loginEmailOrUsername, loginEmailOrUsername)
                 .orElseThrow(() -> new BadCredentialsException("Username or password is invalid!"));
 
         if (!user.isLoginCorrect(loginRequest, bCryptPasswordEncoder)) {
