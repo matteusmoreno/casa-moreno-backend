@@ -17,6 +17,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     boolean existsByMercadoLivreId(String mercadoLivreId);
 
+    List<Product> findAllByIsPromotionalTrue();
+
     @Query("SELECT DISTINCT p.productCategory FROM Product p ORDER BY p.productCategory ASC")
     List<String> findDistinctProductCategories();
 }

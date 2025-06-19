@@ -26,7 +26,8 @@ public record ProductDetailsResponse(
         String stockStatus,
         String affiliateLink,
         String productCategory,
-        String productSubcategory) {
+        String productSubcategory,
+        Boolean isPromotional) {
 
     public ProductDetailsResponse(Product product) {
         this(
@@ -52,7 +53,8 @@ public record ProductDetailsResponse(
                 product.getStockStatus(),
                 product.getAffiliateLink(),
                 product.getProductCategory(),
-                product.getProductSubcategory()
+                product.getProductSubcategory(),
+                product.getIsPromotional()
         );
     }
 }

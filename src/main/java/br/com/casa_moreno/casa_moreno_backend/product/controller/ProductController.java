@@ -73,4 +73,16 @@ public class ProductController {
         List<String> categories = productService.getDistinctCategories();
         return ResponseEntity.ok(categories);
     }
+
+    @PatchMapping("/{id}/promotional")
+    public ResponseEntity<Void> setPromotionalStatus(@PathVariable UUID id, @RequestParam Boolean status) {
+        productService.updatePromotionalStatus(id, status);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/promotional")
+    public ResponseEntity<List<ProductDetailsResponse>> getPromotionalProducts() {
+        List<ProductDetailsResponse> promotionalProducts = productService.findAllPromotionalProducts();
+        return ResponseEntity.ok(promotionalProducts);
+    }
 }

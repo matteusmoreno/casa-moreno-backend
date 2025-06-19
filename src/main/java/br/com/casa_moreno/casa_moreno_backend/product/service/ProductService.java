@@ -50,6 +50,7 @@ public class ProductService {
                 .affiliateLink(request.affiliateLink())
                 .productCategory(request.productCategory())
                 .productSubcategory(request.productSubcategory())
+                .isPromotional(false)
                 .build();
 
         if (request.galleryImageUrls() != null && !request.galleryImageUrls().isEmpty()) {
@@ -117,7 +118,24 @@ public class ProductService {
         return productRepository.findDistinctProductCategories();
     }
 
+    @Transactional
+    public void updatePromotionalStatus(UUID productId, Boolean isPromotional) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
+
+        product.setIsPromotional(isPromotional);
+        productRepository.save(product);
+    }
+
+    public List<ProductDetailsResponse> findAllPromotionalProducts() {
+        return productRepository.findAllByIsPromotionalTrue().stream()
+                .map(ProductDetailsResponse::new)
+                .collect(Collectors.toList());
+    }
+
     private boolean isProvided(String value) {
         return value != null && !value.trim().isEmpty();
     }
+
+
 }

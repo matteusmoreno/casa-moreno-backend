@@ -38,6 +38,7 @@ public class Product {
     private String affiliateLink;
     private String productCategory;
     private String productSubcategory;
+    private Boolean isPromotional;
 
     public void addGalleryImageUrl(String imageUrl) {
         ProductGalleryImageUrl galleryUrl = ProductGalleryImageUrl.builder()
