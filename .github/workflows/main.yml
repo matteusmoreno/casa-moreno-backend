@@ -10,35 +10,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'corretto'
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
 
-    - name: Build with Maven
-      run: mvn clean package -DskipTests
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
 
-    - name: Copy JAR to EC2
-      uses: appleboy/scp-action@v1.0.0
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        source: "target/casa-moreno-backend-0.0.1-SNAPSHOT.jar"
-        target: ${{ secrets.REMOTE_PATH }}/target/
+      - name: Copy JAR to EC2
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          source: "target/casa-moreno-backend-0.0.1-SNAPSHOT.jar"
+          target: ${{ secrets.REMOTE_PATH }}/
 
-    - name: Restart application on EC2
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        script: |
-          sudo java -jar ${{ secrets.REMOTE_PATH }}/target/casa-moreno-backend-0.0.1-SNAPSHOT.jar
-          echo "Service restarted"
-          sleep 5
-          sudo journalctl -u casamoreno.service -n 20 --no-pager
+      - name: Run application on EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            # Mata qualquer processo Java anterior (se houver) para evitar conflitos de porta
+            # Isso é importante para garantir que a nova versão possa iniciar
+            echo "Tentando parar qualquer processo Java existente..."
+            # Encontra e mata processos Java rodando o seu JAR específico
+            # Substitua 'casa-moreno-backend-001-SNAPSHOT.jar' pelo nome exato do seu JAR
+            pkill -f "java -jar.*casa-moreno-backend-0.0.1-SNAPSHOT.jar" || true
+            # Aguarda um pouco para o processo ser encerrado
+            sleep 5
+            
+            # Remove o JAR anterior (opcional, mas recomendado para limpeza)
+            echo "Removendo JAR antigo..."
+            rm -f ${{ secrets.REMOTE_PATH }}/casa-moreno-backend-001-SNAPSHOT.jar
+            
+            # Move o novo JAR para o local correto (se o target for um diretório)
+            echo "Movendo novo JAR para o diretório de destino..."
+            # O scp-action já colocou o JAR diretamente em ${{ secrets.REMOTE_PATH }}/
+            # Se o target do scp-action fosse um diretório, o JAR estaria dentro dele.
+            # Com 'target: ${{ secrets.REMOTE_PATH }}/', o JAR já está lá.
+            
+            # Inicia a aplicação em background usando 'nohup'
+            # Isso é crucial para que a aplicação continue rodando após o SSH fechar
+            echo "Iniciando a aplicação Java em background..."
+            nohup java -jar ${{ secrets.REMOTE_PATH }}/casa-moreno-backend-0.0.1-SNAPSHOT.jar > ${{ secrets.REMOTE_PATH }}/application.log 2>&1 &
+            
+            echo "Aplicação iniciada. Verificando os últimos logs..."
+            # Aguarda um pouco para a aplicação começar a escrever logs
+            sleep 10
+            # Exibe as últimas 50 linhas do log
+            tail -n 50 ${{ secrets.REMOTE_PATH }}/application.log
