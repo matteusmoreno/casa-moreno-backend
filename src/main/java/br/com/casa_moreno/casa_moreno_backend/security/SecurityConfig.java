@@ -53,7 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/products/{id}/promotional").hasRole("ADMIN")
 
                         //USERS
-                        .requestMatchers("/users/create").permitAll()
+                        .requestMatchers("/users/create", "/test").permitAll()
 
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
