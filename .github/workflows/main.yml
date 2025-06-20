@@ -13,56 +13,62 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'corretto' # Ou 'temurin', 'adopt' etc., conforme sua preferência
+      # Removemos o "Set up JDK" e "Build with Maven" daqui, pois eles acontecerão no EC2.
+      # - name: Set up JDK 21
+      #   uses: actions/setup-java@v4
+      #   with:
+      #     java-version: '21'
+      #     distribution: 'corretto'
 
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
+      # - name: Build with Maven
+      #   run: mvn clean package -DskipTests
 
-      - name: Copy JAR to EC2
+      - name: Copy entire project to EC2
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "target/casa-moreno-backend-0.0.1-SNAPSHOT.jar"
-          target: ${{ secrets.REMOTE_PATH }}/ # Copia o JAR diretamente para o diretório remoto
+          source: "./" # Copia todo o diretório do projeto (o ponto significa o diretório atual)
+          target: ${{ secrets.REMOTE_PATH }} # Copia para o diretório remoto
 
-      - name: Run application on EC2
+      - name: Build and Run application on EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script: |
-            # Mata qualquer processo Java anterior para evitar conflitos de porta
+            echo "Navegando para o diretório do projeto no EC2: ${{ secrets.REMOTE_PATH }}"
+            cd ${{ secrets.REMOTE_PATH }}
+            
+            # Garante que o Java e o Maven estão instalados no EC2
+            # Estes comandos são exemplos para sistemas baseados em Debian/Ubuntu.
+            # Adapte para Red Hat/CentOS (yum/dnf) ou Amazon Linux conforme necessário.
+            echo "Verificando e instalando Java e Maven no EC2 (se necessário)..."
+            sudo apt update && sudo apt install -y openjdk-21-jdk maven || true
+            
+            # Mata qualquer processo Java anterior da sua aplicação
             echo "Tentando parar qualquer processo Java existente..."
-            # Encontra e mata processos Java rodando o seu JAR específico
-            # ATENÇÃO: Verifique o nome exato do seu JAR no comando abaixo
             pkill -f "java -jar.*casa-moreno-backend-0.0.1-SNAPSHOT.jar" || true
-            sleep 5 # Dê um tempo para o processo ser encerrado
+            sleep 5
             
-            # Remove o JAR antigo (recomendado para garantir que a versão mais nova seja executada)
-            echo "Removendo JAR antigo..."
-            rm -f ${{ secrets.REMOTE_PATH }}/casa-moreno-backend-001-SNAPSHOT.jar
+            # Remove o JAR antigo antes de compilar um novo
+            echo "Removendo JAR antigo antes de recompilar..."
+            rm -f target/casa-moreno-backend-001-SNAPSHOT.jar
             
-            # Move o novo JAR para o local correto (se o scp-action copiou para um diretório temporário)
-            # NOTA: Com 'target: ${{ secrets.REMOTE_PATH }}/', o JAR já deve estar no local certo.
-            # Se você usou 'target: ${{ secrets.REMOTE_PATH }}/target/', o JAR estaria em '.../target/casa-moreno-backend-0.0.1-SNAPSHOT.jar'
-            # Você pode ajustar o 'rm -f' e o 'nohup java -jar' para refletir isso.
+            # Compila a aplicação no EC2
+            echo "Compilando a aplicação no EC2 com Maven..."
+            mvn clean package -DskipTests
             
-            # Inicia a aplicação em background usando 'nohup' para que ela continue rodando após o SSH fechar
+            # Inicia a aplicação em background usando 'nohup'
             echo "Iniciando a aplicação Java em background..."
-            nohup java -jar ${{ secrets.REMOTE_PATH }}/casa-moreno-backend-001-SNAPSHOT.jar > ${{ secrets.REMOTE_PATH }}/application.log 2>&1 &
+            nohup java -jar target/casa-moreno-backend-001-SNAPSHOT.jar > application.log 2>&1 &
             
             echo "Aplicação iniciada. Verificando os últimos logs..."
-            sleep 10 # Aguarde um pouco para a aplicação começar a escrever logs
-            tail -n 50 ${{ secrets.REMOTE_PATH }}/application.log
+            sleep 10
+            tail -n 50 application.log
             
-            # --- Importante para evitar o erro "Process exited with status 143" ---
-            # Dê um tempo extra para o 'nohup' se desvincular completamente da sessão SSH
+            # Importante para evitar o erro "Process exited with status 143"
             echo "Finalizando conexão SSH de forma segura..."
             sleep 5
