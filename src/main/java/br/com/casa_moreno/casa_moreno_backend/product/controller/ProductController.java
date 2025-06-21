@@ -85,4 +85,21 @@ public class ProductController {
         List<ProductDetailsResponse> promotionalProducts = productService.findAllPromotionalProducts();
         return ResponseEntity.ok(promotionalProducts);
     }
+
+    // NOVOS ENDPOINTS PARA GERENCIAMENTO DE IMAGENS
+    @PatchMapping("/{id}/images/set-main")
+    public ResponseEntity<Void> setMainProductImage(@PathVariable UUID id, @RequestBody String newMainImageUrl) {
+        // newMainImageUrl vem como uma string JSON, então precisamos remover as aspas
+        String imageUrlClean = newMainImageUrl.replaceAll("\"", "");
+        productService.setMainProductImage(id, imageUrlClean);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/images/delete")
+    public ResponseEntity<Void> deleteProductImage(@PathVariable UUID id, @RequestBody String imageUrl) {
+        // imageUrl vem como uma string JSON, então precisamos remover as aspas
+        String imageUrlClean = imageUrl.replaceAll("\"", "");
+        productService.deleteProductImage(id, imageUrlClean);
+        return ResponseEntity.noContent().build();
+    }
 }

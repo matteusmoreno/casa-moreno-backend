@@ -6,6 +6,7 @@ import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
+import br.com.casa_moreno.casa_moreno_backend.product.domain.ProductGalleryImageUrl;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
@@ -133,9 +134,48 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void setMainProductImage(UUID productId, String newMainImageUrl) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
+
+        List<ProductGalleryImageUrl> gallery = product.getGalleryImageUrls();
+        ProductGalleryImageUrl imageToMove = null;
+        int originalIndex = -1;
+
+        // Encontra a imagem na lista
+        for (int i = 0; i < gallery.size(); i++) {
+            if (gallery.get(i).getImageUrl().equals(newMainImageUrl)) {
+                imageToMove = gallery.get(i);
+                originalIndex = i;
+                break;
+            }
+        }
+
+        if (imageToMove != null && originalIndex != 0) { // Se a imagem foi encontrada e não é a primeira
+            gallery.remove(originalIndex); // Remove da posição original
+            gallery.addFirst(imageToMove); // Adiciona na primeira posição
+            productRepository.save(product); // Salva as alterações para persistir a nova ordem
+        } else if (imageToMove == null) {
+            throw new ProductNotFoundException("Image with URL '" + newMainImageUrl + "' not found in product gallery.");
+        }
+    }
+
+    @Transactional
+    public void deleteProductImage(UUID productId, String imageUrlToDelete) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
+
+        List<ProductGalleryImageUrl> gallery = product.getGalleryImageUrls();
+        boolean removed = gallery.removeIf(image -> image.getImageUrl().equals(imageUrlToDelete));
+
+        if (!removed) {
+            throw new ProductNotFoundException("Image with URL '" + imageUrlToDelete + "' not found in product gallery.");
+        }
+        productRepository.save(product); // Salva para remover a imagem do banco de dados
+    }
+
     private boolean isProvided(String value) {
         return value != null && !value.trim().isEmpty();
     }
-
-
 }

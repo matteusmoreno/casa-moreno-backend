@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers("/products/delete/**").hasRole("ADMIN")
                         .requestMatchers("/products/list-all").hasRole("ADMIN")
                         .requestMatchers("/products/{id}/promotional").hasRole("ADMIN")
+                        .requestMatchers("/products/{id}/images/set-main").hasRole("ADMIN")
+                        .requestMatchers("/products/{id}/images/delete").hasRole("ADMIN")
 
                         //USERS
                         .requestMatchers("/users/create").permitAll()
