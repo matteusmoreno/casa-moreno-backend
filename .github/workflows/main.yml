@@ -13,25 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Removemos o "Set up JDK" e "Build with Maven" daqui, pois eles acontecerão no EC2.
-      # - name: Set up JDK 21
-      #   uses: actions/setup-java@v4
-      #   with:
-      #     java-version: '21'
-      #     distribution: 'corretto'
-
-      # - name: Build with Maven
-      #   run: mvn clean package -DskipTests
-
       - name: Copy entire project to EC2
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "./" # Copia todo o diretório do projeto (o ponto significa o diretório atual)
-          target: ${{ secrets.REMOTE_PATH }} # Copia para o diretório remoto
-
+          source: "./"
+          target: ${{ secrets.REMOTE_PATH }}
       - name: Build and Run application on EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -42,19 +31,15 @@ jobs:
             echo "Navegando para o diretório do projeto no EC2: ${{ secrets.REMOTE_PATH }}"
             cd ${{ secrets.REMOTE_PATH }}
             
-            # Garante que o Java e o Maven estão instalados no EC2
-            # Estes comandos são exemplos para sistemas baseados em Debian/Ubuntu.
-            # Adapte para Red Hat/CentOS (yum/dnf) ou Amazon Linux conforme necessário.
-            echo "Verificando e instalando Java e Maven no EC2 (se necessário)..."
-            sudo apt update && sudo apt install -y openjdk-21-jdk maven || true
-            
             # Mata qualquer processo Java anterior da sua aplicação
             echo "Tentando parar qualquer processo Java existente..."
+            # ATENÇÃO: Verifique o nome exato do seu JAR aqui
             pkill -f "java -jar.*casa-moreno-backend-0.0.1-SNAPSHOT.jar" || true
             sleep 5
             
             # Remove o JAR antigo antes de compilar um novo
             echo "Removendo JAR antigo antes de recompilar..."
+            # ATENÇÃO: Verifique o nome exato do seu JAR aqui
             rm -f target/casa-moreno-backend-001-SNAPSHOT.jar
             
             # Compila a aplicação no EC2
@@ -63,6 +48,7 @@ jobs:
             
             # Inicia a aplicação em background usando 'nohup'
             echo "Iniciando a aplicação Java em background..."
+            # ATENÇÃO: Verifique o nome exato do seu JAR aqui
             nohup java -jar target/casa-moreno-backend-001-SNAPSHOT.jar > application.log 2>&1 &
             
             echo "Aplicação iniciada. Verificando os últimos logs..."

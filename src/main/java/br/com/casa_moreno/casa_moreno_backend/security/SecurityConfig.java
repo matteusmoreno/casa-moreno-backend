@@ -42,7 +42,7 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         //GLOBAL
-                        .requestMatchers("/login", "/actuator/health").permitAll()
+                        .requestMatchers("/login", "/actuator/health", "/test").permitAll()
 
                         //PRODUCTS
                         .requestMatchers("/products/find-by-category", "/products/categories", "/products/{id}", "/promotional").permitAll()
@@ -53,7 +53,7 @@ public class SecurityConfig {
                         .requestMatchers("/products/{id}/promotional").hasRole("ADMIN")
 
                         //USERS
-                        .requestMatchers("/users/create", "/test").permitAll()
+                        .requestMatchers("/users/create").permitAll()
 
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
