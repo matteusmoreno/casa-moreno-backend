@@ -43,7 +43,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         //GLOBAL
                         .requestMatchers("/login", "/actuator/health").permitAll()
-                        .requestMatchers("/test").permitAll()
 
                         //PRODUCTS
                         .requestMatchers("/products/find-by-category", "/products/categories", "/products/{id}", "/promotional").permitAll()

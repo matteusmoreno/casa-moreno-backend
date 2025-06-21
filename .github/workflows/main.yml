@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'corretto' # Ou 'temurin', 'adopt'
+          distribution: 'corretto'
 
       - name: Build with Maven
         run: mvn clean package -DskipTests
@@ -36,8 +36,8 @@ jobs:
         with:
           context: .
           push: true
-          tags: matteusmoreno/casa-moreno-backend:latest # Substitua com o nome da sua imagem
-          file: ./Dockerfile # Garanta que seu Dockerfile esteja na raiz do projeto
+          tags: matteusmoreno/casa-moreno-backend:latest
+          file: ./Dockerfile
 
       - name: Deploy Docker image to EC2
         uses: appleboy/ssh-action@v1.0.0
@@ -45,27 +45,28 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          timeout: 600s # Aumentado para 10 minutos para dar tempo para build/pull/run
+          timeout: 600s
           script: |
             echo "Parando e removendo container Docker antigo (se existir)..."
-            # Parar e remover o container que está usando a imagem 'matteusmoreno/casa-moreno-backend'
             docker ps -q --filter "ancestor=matteusmoreno/casa-moreno-backend" | xargs -r docker stop
             docker ps -aq --filter "ancestor=matteusmoreno/casa-moreno-backend" | xargs -r docker rm
-            
-            # Opcional: Remover imagens antigas para liberar espaço
-            # docker rmi matteusmoreno/casa-moreno-backend:latest || true
             
             echo "Puxando a nova imagem Docker..."
             docker pull matteusmoreno/casa-moreno-backend:latest
             
             echo "Rodando a nova imagem Docker..."
-            # Substitua os nomes das variáveis de ambiente e portas conforme sua necessidade
             docker run -d \
               --name casa-moreno-backend-container \
               -p 8085:8085 \
               -e POSTGRES_USERNAME=${{ secrets.POSTGRES_USERNAME }} \
               -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
               matteusmoreno/casa-moreno-backend:latest
+            
+            # --- NOVO: Limpeza de imagens Docker antigas ---
+            echo "Limpando imagens Docker antigas (dangling images)..."
+            # 'docker image prune -f' remove todas as imagens que não têm tags e não estão sendo usadas por contêineres
+            # '|| true' evita que o workflow falhe se não houver imagens para remover
+            docker image prune -f || true
             
             echo "Verificando containers Docker em execução..."
             docker ps -a
