@@ -31,6 +31,7 @@ public class Product {
     private BigDecimal installmentValue;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderColumn(name = "image_order")
     @Builder.Default
     private List<ProductGalleryImageUrl> galleryImageUrls = new ArrayList<>();
 

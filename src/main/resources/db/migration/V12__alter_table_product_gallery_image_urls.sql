@@ -1,0 +1,1 @@
+ALTER TABLE product_gallery_image_urls ADD COLUMN image_order INT;
