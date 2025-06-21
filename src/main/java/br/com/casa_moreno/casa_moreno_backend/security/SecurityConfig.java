@@ -42,7 +42,8 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         //GLOBAL
-                        .requestMatchers("/login", "/actuator/health", "/test").permitAll()
+                        .requestMatchers("/login", "/actuator/health").permitAll()
+                        .requestMatchers("/login").permitAll()
 
                         //PRODUCTS
                         .requestMatchers("/products/find-by-category", "/products/categories", "/products/{id}", "/promotional").permitAll()
