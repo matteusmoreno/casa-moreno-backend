@@ -1,13 +1,15 @@
 package br.com.casa_moreno.casa_moreno_backend.user.service;
 
 import br.com.casa_moreno.casa_moreno_backend.exception.UserNotFoundException;
-import br.com.casa_moreno.casa_moreno_backend.user.dto.CreateUserRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.constant.Profile;
 import br.com.casa_moreno.casa_moreno_backend.user.domain.User;
+import br.com.casa_moreno.casa_moreno_backend.user.dto.CreateUserRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.UpdateUserRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.UserDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -75,5 +77,11 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         userRepository.delete(user);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UserNotFoundException {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));
     }
 }
