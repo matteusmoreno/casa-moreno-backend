@@ -175,11 +175,12 @@ public class ProductService {
         productRepository.save(product); // Salva para remover a imagem do banco de dados
     }
 
-    private boolean isProvided(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
+    @Transactional
     public String triggerSynchronization() {
         return mercadoLivreScraperClient.syncProducts();
+    }
+
+    private boolean isProvided(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }
