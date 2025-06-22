@@ -105,5 +105,6 @@ public class ProductController {
     public ResponseEntity<String> synchronizeAllProducts() {
         String report = productService.triggerSynchronization();
         return ResponseEntity.ok().header("Content-Type", "text/plain; charset=utf-8").body(report);
+
     }
 }
