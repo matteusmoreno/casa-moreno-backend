@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -42,7 +43,8 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         //GLOBAL
-                        .requestMatchers("/login", "/actuator/health").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
 
                         //PRODUCTS
                         .requestMatchers("/products/find-by-category", "/products/categories", "/products/{id}", "/promotional").permitAll()
