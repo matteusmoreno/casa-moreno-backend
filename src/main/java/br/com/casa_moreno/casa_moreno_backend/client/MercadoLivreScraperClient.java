@@ -7,7 +7,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 @FeignClient(name = "mercado-livre-scraper", url = "${scraper.client.url}")
 public interface MercadoLivreScraperClient {
 
-    @PostMapping
+    @PostMapping("/scrape")
     @CircuitBreaker(name = "mercadoLivreScraper")
     MercadoLivreScraperResponse scrapeProducts(MercadoLivreScraperRequest request);
+
+    @PostMapping("/sync/all")
+    String syncProducts();
 }

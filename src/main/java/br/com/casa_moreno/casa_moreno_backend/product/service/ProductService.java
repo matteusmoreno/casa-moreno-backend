@@ -178,4 +178,8 @@ public class ProductService {
     private boolean isProvided(String value) {
         return value != null && !value.trim().isEmpty();
     }
+
+    public String triggerSynchronization() {
+        return mercadoLivreScraperClient.syncProducts();
+    }
 }

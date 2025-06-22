@@ -86,10 +86,8 @@ public class ProductController {
         return ResponseEntity.ok(promotionalProducts);
     }
 
-    // NOVOS ENDPOINTS PARA GERENCIAMENTO DE IMAGENS
     @PatchMapping("/{id}/images/set-main")
     public ResponseEntity<Void> setMainProductImage(@PathVariable UUID id, @RequestBody String newMainImageUrl) {
-        // newMainImageUrl vem como uma string JSON, então precisamos remover as aspas
         String imageUrlClean = newMainImageUrl.replaceAll("\"", "");
         productService.setMainProductImage(id, imageUrlClean);
         return ResponseEntity.noContent().build();
@@ -101,5 +99,11 @@ public class ProductController {
         String imageUrlClean = imageUrl.replaceAll("\"", "");
         productService.deleteProductImage(id, imageUrlClean);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/sync-all")
+    public ResponseEntity<String> synchronizeAllProducts() {
+        String report = productService.triggerSynchronization();
+        return ResponseEntity.ok().header("Content-Type", "text/plain; charset=utf-8").body(report);
     }
 }
