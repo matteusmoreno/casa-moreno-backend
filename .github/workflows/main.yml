@@ -60,6 +60,8 @@ jobs:
               -p 8085:8085 \
               -e POSTGRES_USERNAME=${{ secrets.POSTGRES_USERNAME }} \
               -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+              -e EMAIL_GOOGLE_USERNAME=${{ secrets.EMAIL_GOOGLE_USERNAME }} \
+              -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
               matteusmoreno/casa-moreno-backend:latest
             
             # --- NOVO: Limpeza de imagens Docker antigas ---

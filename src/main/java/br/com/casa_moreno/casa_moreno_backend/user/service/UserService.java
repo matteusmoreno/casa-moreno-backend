@@ -1,5 +1,6 @@
 package br.com.casa_moreno.casa_moreno_backend.user.service;
 
+import br.com.casa_moreno.casa_moreno_backend.email.service.EmailService;
 import br.com.casa_moreno.casa_moreno_backend.exception.UserNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.user.constant.Profile;
 import br.com.casa_moreno.casa_moreno_backend.user.domain.User;
@@ -22,10 +23,12 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final EmailService emailService;
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, EmailService emailService) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -41,6 +44,8 @@ public class UserService implements UserDetailsService {
                 .createdAt(LocalDateTime.now())
                 .updatedAt(null)
                 .build();
+
+        emailService.sendRegistrationConfirmationEmail(request.email(), request.name());
 
         return userRepository.save(user);
     }
