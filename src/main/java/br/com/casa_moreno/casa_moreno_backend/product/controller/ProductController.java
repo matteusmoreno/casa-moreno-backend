@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -16,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/products")
@@ -102,9 +104,18 @@ public class ProductController {
     }
 
     @PostMapping("/sync-all")
-    public ResponseEntity<String> synchronizeAllProducts() {
-        String report = String.valueOf(productService.triggerSynchronization());
-        return ResponseEntity.ok().header("Content-Type", "text/plain; charset=utf-8").body(report);
-
+    public CompletableFuture<ResponseEntity<String>> synchronizeAllProducts() {
+        return productService.triggerSynchronization()
+                .thenApply(report -> {
+                    // Este bloco é executado quando o Future é completado com sucesso
+                    return ResponseEntity.ok()
+                            .header("Content-Type", "text/plain; charset=utf-8")
+                            .body(report);
+                })
+                .exceptionally(ex -> {
+                    // Este bloco é executado se ocorrer uma exceção no Future
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("Erro durante a sincronização: " + ex.getMessage());
+                });
     }
 }

@@ -177,7 +177,6 @@ public class ProductService {
         productRepository.save(product); // Salva para remover a imagem do banco de dados
     }
 
-    @Transactional
     @Async
     public CompletableFuture<String> triggerSynchronization() {
         return CompletableFuture.completedFuture(mercadoLivreScraperClient.syncProducts());
