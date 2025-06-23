@@ -14,10 +14,12 @@ import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductReposito
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -176,8 +178,9 @@ public class ProductService {
     }
 
     @Transactional
-    public String triggerSynchronization() {
-        return mercadoLivreScraperClient.syncProducts();
+    @Async
+    public CompletableFuture<String> triggerSynchronization() {
+        return CompletableFuture.completedFuture(mercadoLivreScraperClient.syncProducts());
     }
 
     private boolean isProvided(String value) {
