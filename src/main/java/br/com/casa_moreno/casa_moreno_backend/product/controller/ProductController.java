@@ -5,6 +5,7 @@ import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.service.ProductService;
+import br.com.casa_moreno.casa_moreno_backend.product.service.SyncTaskService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,9 +26,11 @@ import java.util.concurrent.CompletableFuture;
 public class ProductController {
 
     private final ProductService productService;
+    private final SyncTaskService syncTaskService;
 
-    public ProductController(ProductService productService) {
+    public ProductController(ProductService productService, SyncTaskService syncTaskService) {
         this.productService = productService;
+        this.syncTaskService = syncTaskService;
     }
 
     @PostMapping("/create")
@@ -103,19 +107,21 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/sync-all")
-    public CompletableFuture<ResponseEntity<String>> synchronizeAllProducts() {
-        return productService.triggerSynchronization()
-                .thenApply(report -> {
-                    // Este bloco é executado quando o Future é completado com sucesso
-                    return ResponseEntity.ok()
-                            .header("Content-Type", "text/plain; charset=utf-8")
-                            .body(report);
-                })
-                .exceptionally(ex -> {
-                    // Este bloco é executado se ocorrer uma exceção no Future
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body("Erro durante a sincronização: " + ex.getMessage());
-                });
+    @PostMapping("/start-sync")
+    public ResponseEntity<Map<String, String>> startSynchronization() {
+        // Submete a tarefa assíncrona e obtém um ID
+        String taskId = syncTaskService.submitTask(() -> productService.triggerSynchronization());
+
+        // Retorna 202 Accepted com o ID da tarefa para consulta futura
+        return ResponseEntity.accepted().body(Map.of("taskId", taskId));
+    }
+
+    /**
+     * NOVO ENDPOINT: Verifica o status de uma tarefa de sincronização.
+     */
+    @GetMapping("/sync-status/{taskId}")
+    public ResponseEntity<SyncTaskService.TaskResult> getSynchronizationStatus(@PathVariable String taskId) {
+        SyncTaskService.TaskResult result = syncTaskService.getTaskResult(taskId);
+        return ResponseEntity.ok(result);
     }
 }
