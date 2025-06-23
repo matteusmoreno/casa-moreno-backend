@@ -37,7 +37,7 @@ public class LoginService {
             throw new BadCredentialsException("Username or password is invalid!");
         }
 
-        Instant expiresAt = Instant.now().plusSeconds(3600);
+        Instant expiresAt = Instant.now().plusSeconds(60 * 60 * 24);
         var claims = JwtClaimsSet.builder()
                 .subject(user.getUsername())
                 .claim("user id", user.getUserId())
