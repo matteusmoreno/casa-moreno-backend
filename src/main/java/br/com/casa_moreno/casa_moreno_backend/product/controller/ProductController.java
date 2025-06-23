@@ -109,16 +109,11 @@ public class ProductController {
 
     @PostMapping("/start-sync")
     public ResponseEntity<Map<String, String>> startSynchronization() {
-        // Submete a tarefa assíncrona e obtém um ID
         String taskId = syncTaskService.submitTask(() -> productService.triggerSynchronization());
 
-        // Retorna 202 Accepted com o ID da tarefa para consulta futura
         return ResponseEntity.accepted().body(Map.of("taskId", taskId));
     }
 
-    /**
-     * NOVO ENDPOINT: Verifica o status de uma tarefa de sincronização.
-     */
     @GetMapping("/sync-status/{taskId}")
     public ResponseEntity<SyncTaskService.TaskResult> getSynchronizationStatus(@PathVariable String taskId) {
         SyncTaskService.TaskResult result = syncTaskService.getTaskResult(taskId);
