@@ -1,6 +1,5 @@
 package br.com.casa_moreno.casa_moreno_backend.email.service;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -43,15 +42,17 @@ public class EmailService {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            helper.setFrom(fromEmail);
+            helper.setFrom(fromEmail, "Casa Moreno");
+
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(htmlBody, true); // O 'true' indica que o corpo é HTML
+            helper.setText(htmlBody, true);
 
             mailSender.send(mimeMessage);
 
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             System.err.println("Falha ao enviar e-mail para " + to + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
