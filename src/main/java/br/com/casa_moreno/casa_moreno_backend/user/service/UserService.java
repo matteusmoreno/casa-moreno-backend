@@ -50,6 +50,30 @@ public class UserService implements UserDetailsService {
         return userRepository.save(user);
     }
 
+    @Transactional
+    public User findOrCreateUserForOAuth(String email, String name) {
+        return userRepository.findByEmail(email).orElseGet(() -> {
+            String temporaryPassword = UUID.randomUUID().toString().substring(0, 8);
+            String hashedPassword = bCryptPasswordEncoder.encode(temporaryPassword);
+
+            User newUser = User.builder()
+                    .name(name)
+                    .email(email)
+                    .username(email)
+                    .password(hashedPassword)
+                    .profile(Profile.USER)
+                    .active(true)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            User savedUser = userRepository.save(newUser);
+
+            emailService.sendOAuthRegistrationWelcomeEmail(savedUser.getEmail(), savedUser.getName(), temporaryPassword);
+
+            return savedUser;
+        });
+    }
+
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found with username: " + username));

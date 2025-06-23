@@ -62,12 +62,11 @@ jobs:
               -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
               -e EMAIL_GOOGLE_USERNAME=${{ secrets.EMAIL_GOOGLE_USERNAME }} \
               -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
+              -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+              -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
               matteusmoreno/casa-moreno-backend:latest
             
-            # --- NOVO: Limpeza de imagens Docker antigas ---
             echo "Limpando imagens Docker antigas (dangling images)..."
-            # 'docker image prune -f' remove todas as imagens que não têm tags e não estão sendo usadas por contêineres
-            # '|| true' evita que o workflow falhe se não houver imagens para remover
             docker image prune -f || true
             
             echo "Verificando containers Docker em execução..."

@@ -36,6 +36,20 @@ public class EmailService {
         sendHtmlEmail(to, subject, emailBody);
     }
 
+    public void sendOAuthRegistrationWelcomeEmail(String to, String name, String temporaryPassword) {
+        final String subject = "Sua conta na Casa Moreno foi criada!";
+
+        Map<String, Object> templateVariables = Map.of(
+                "name", name,
+                "subject", subject,
+                "temporaryPassword", temporaryPassword
+        );
+
+        String emailBody = templateService.processTemplate("oauth-registration-welcome.html", templateVariables);
+
+        sendHtmlEmail(to, subject, emailBody);
+    }
+
     @Async
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
