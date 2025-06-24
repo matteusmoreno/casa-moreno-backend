@@ -54,10 +54,15 @@ jobs:
             echo "Puxando a nova imagem Docker..."
             docker pull matteusmoreno/casa-moreno-backend:latest
 
-            echo "Criando o arquivo de credenciais do Google Cloud..."
-            # --- CORREÇÃO AQUI: Adicionado aspas simples para preservar a formatação do JSON  ---
-            echo '${{ secrets.GCP_SA_KEY }}' > /home/ec2-user/gcp-key.json
+            # --- SCRIPT DE CRIAÇÃO DE ARQUIVO MAIS ROBUSTO ---
+            KEY_FILE_PATH="/home/ec2-user/gcp-key.json"
+            echo "Garantindo que o caminho para a chave esteja limpo..."
+            rm -rf $KEY_FILE_PATH
             
+            echo "Criando o novo arquivo de credenciais do Google Cloud..."
+            echo '${{ secrets.GCP_SA_KEY }}' > $KEY_FILE_PATH
+            chmod 600 $KEY_FILE_PATH # Define permissões seguras para o arquivo
+
             echo "Rodando a nova imagem Docker..."
             docker run -d \
               --name casa-moreno-backend-container \
@@ -68,12 +73,12 @@ jobs:
               -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
               -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
               -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-              -v /home/ec2-user/gcp-key.json:/app/gcp-key.json \
+              -v $KEY_FILE_PATH:/app/gcp-key.json \
               -e GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json \
               matteusmoreno/casa-moreno-backend:latest
             
             echo "Limpando o arquivo de credenciais do servidor EC2..."
-            rm /home/ec2-user/gcp-key.json
+            rm -f $KEY_FILE_PATH
 
             echo "Limpando imagens Docker antigas (dangling images)..."
             docker image prune -f || true
@@ -81,5 +86,5 @@ jobs:
             echo "Verificando containers Docker em execução..."
             docker ps -a
             echo "Verificando logs do container recém-criado (pode demorar um pouco para aparecer)..."
-            sleep 10
-            docker logs casa-moreno-backend-container --tail 50
+            sleep 15 # Aumentei um pouco o tempo para a aplicação ter mais tempo de iniciar
+            docker logs casa-moreno-backend-container --tail 100
