@@ -12,8 +12,7 @@ public record UserDetailsResponse(
         String email,
         String phone,
         String profile,
-        String token,
-        LocalDateTime expiresTokenAt,
+
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         Boolean active) {
@@ -27,8 +26,6 @@ public record UserDetailsResponse(
                 user.getEmail(),
                 user.getPhone(),
                 user.getProfile().toString(),
-                user.getToken(),
-                user.getExpiresTokenAt(),
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
                 user.getActive()

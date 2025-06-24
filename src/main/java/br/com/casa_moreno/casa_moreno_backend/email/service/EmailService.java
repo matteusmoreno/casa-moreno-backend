@@ -50,6 +50,37 @@ public class EmailService {
         sendHtmlEmail(to, subject, emailBody);
     }
 
+    public void sendPasswordResetLinkEmail(String to, String name, String token) {
+        final String subject = "Link para Redefinição de Senha - Casa Moreno";
+
+
+        final String frontendResetUrl = "https://www.casa-moreno.com/auth/reset-password?token=" + token;
+        //final String frontendResetUrl = "http://localhost:3001/auth/reset-password?token=" + token;
+
+        Map<String, Object> templateVariables = Map.of(
+                "name", name,
+                "subject", subject,
+                "resetLink", frontendResetUrl
+        );
+
+        String emailBody = templateService.processTemplate("password-reset-link.html", templateVariables);
+
+        sendHtmlEmail(to, subject, emailBody);
+    }
+
+    public void sendPasswordChangeConfirmationEmail(String to, String name) {
+        final String subject = "Confirmação de Alteração de Senha - Casa Moreno";
+
+        Map<String, Object> templateVariables = Map.of(
+                "name", name,
+                "subject", subject
+        );
+
+        String emailBody = templateService.processTemplate("password-change-confirmation.html", templateVariables);
+
+        sendHtmlEmail(to, subject, emailBody);
+    }
+
     @Async
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {

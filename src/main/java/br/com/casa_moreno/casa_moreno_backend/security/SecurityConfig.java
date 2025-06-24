@@ -50,7 +50,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/products/sync-status/**").hasRole("ADMIN")
 
                         //USERS
-                        .requestMatchers("/users/create").permitAll()
+                        .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/users/delete/**").hasRole("ADMIN")
 
                         .anyRequest().authenticated())

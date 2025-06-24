@@ -41,8 +41,6 @@ public class LoginService {
         Instant expiresAt = Instant.now().plusSeconds(60 * 60 * 24);
         LocalDateTime expiresTokenAt = LocalDateTime.ofInstant(expiresAt, ZoneId.systemDefault());
 
-        user.setToken(tokenJwt);
-        user.setExpiresTokenAt(expiresTokenAt);
         userRepository.save(user);
 
         return new LoginResponse(tokenJwt, expiresTokenAt);

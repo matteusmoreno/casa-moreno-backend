@@ -31,10 +31,10 @@ public class User implements UserDetails {
     private String phone;
     @Enumerated(EnumType.STRING)
     private Profile profile;
-    private String token;
-    private LocalDateTime expiresTokenAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String passwordResetToken;
+    private LocalDateTime passwordResetTokenExpiresAt;
     private Boolean active;
 
     @Override

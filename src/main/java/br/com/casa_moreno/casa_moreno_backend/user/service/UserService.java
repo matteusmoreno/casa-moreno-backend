@@ -108,6 +108,45 @@ public class UserService implements UserDetailsService {
         userRepository.delete(user);
     }
 
+    @Transactional
+    public void generatePasswordResetToken(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+
+        String token = UUID.randomUUID().toString();
+
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiresAt(LocalDateTime.now().plusHours(1));
+
+        userRepository.save(user);
+
+        emailService.sendPasswordResetLinkEmail(user.getEmail(), user.getName(), token);
+    }
+
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        // Encontra o usuário pelo token de reset
+        User user = userRepository.findByPasswordResetToken(token)
+                .orElseThrow(() -> new UserNotFoundException("Invalid password reset token."));
+
+        // Verifica se o token expirou
+        if (user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new UserNotFoundException("Password reset token has expired.");
+        }
+
+        // Se o token for válido, atualiza a senha
+        user.setPassword(bCryptPasswordEncoder.encode(newPassword));
+
+        // Invalida o token para que não possa ser usado novamente
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiresAt(null);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        emailService.sendPasswordChangeConfirmationEmail(user.getEmail(), user.getName());
+    }
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UserNotFoundException {
         return userRepository.findByUsername(username)

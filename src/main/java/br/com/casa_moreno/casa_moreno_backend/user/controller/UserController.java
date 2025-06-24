@@ -2,6 +2,7 @@ package br.com.casa_moreno.casa_moreno_backend.user.controller;
 
 import br.com.casa_moreno.casa_moreno_backend.user.domain.User;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.CreateUserRequest;
+import br.com.casa_moreno.casa_moreno_backend.user.dto.PasswordResetRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.UpdateUserRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.UserDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.user.service.UserService;
@@ -53,5 +54,19 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@RequestParam UUID userId) {
         userService.deleteUserById(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- ENDPOINT ANTIGO ATUALIZADO PARA SOLICITAR O LINK ---
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+        userService.generatePasswordResetToken(email);
+        return ResponseEntity.ok("Se um usuário com este e-mail existir, um link para redefinição de senha foi enviado.");
+    }
+
+    // --- NOVO ENDPOINT PARA REDEFINIR A SENHA ---
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@RequestBody @Valid PasswordResetRequest request) {
+        userService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok().build();
     }
 }
