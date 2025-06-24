@@ -50,8 +50,8 @@ public class UserController {
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteUser(@RequestParam UUID useriId) {
-        userService.deleteUserById(useriId);
+    public ResponseEntity<Void> deleteUser(@RequestParam UUID userId) {
+        userService.deleteUserById(userId);
         return ResponseEntity.noContent().build();
     }
 }
