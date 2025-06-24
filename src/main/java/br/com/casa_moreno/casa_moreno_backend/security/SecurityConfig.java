@@ -53,6 +53,10 @@ public class SecurityConfig {
                         .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/users/delete/**").hasRole("ADMIN")
 
+                        //AI
+                        .requestMatchers(HttpMethod.POST, "/ai/chat").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/ai/organize-description").hasRole("ADMIN")
+
                         .anyRequest().authenticated())
 
 

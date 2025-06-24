@@ -53,6 +53,11 @@ jobs:
             
             echo "Puxando a nova imagem Docker..."
             docker pull matteusmoreno/casa-moreno-backend:latest
+
+            # --- NOVO: Cria o arquivo de chave da conta de serviço no EC2 ---
+            echo "Criando o arquivo de credenciais do Google Cloud..."
+            # A variável /home/ec2-user/gcp-key.json é o caminho no servidor EC2
+            echo "${{ secrets.GCP_SA_KEY }}" > /home/ec2-user/gcp-key.json
             
             echo "Rodando a nova imagem Docker..."
             docker run -d \
@@ -64,8 +69,17 @@ jobs:
               -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
               -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
               -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+              # --- NOVO: Monta o arquivo de chave para dentro do container ---
+              # O formato é: /caminho/no/ec2:/caminho/dentro/do/container
+              -v /home/ec2-user/gcp-key.json:/app/gcp-key.json \
+              # --- NOVO: Informa à aplicação onde encontrar a chave DENTRO do container ---
+              -e GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json \
               matteusmoreno/casa-moreno-backend:latest
             
+            # --- NOVO: Limpeza segura do arquivo de chave no EC2 ---
+            echo "Limpando o arquivo de credenciais do servidor EC2..."
+            rm /home/ec2-user/gcp-key.json
+
             echo "Limpando imagens Docker antigas (dangling images)..."
             docker image prune -f || true
             
