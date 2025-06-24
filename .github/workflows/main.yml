@@ -55,7 +55,8 @@ jobs:
             docker pull matteusmoreno/casa-moreno-backend:latest
 
             echo "Criando o arquivo de credenciais do Google Cloud..."
-            echo "${{ secrets.GCP_SA_KEY }}" > /home/ec2-user/gcp-key.json
+            # --- CORREÇÃO AQUI: Adicionado aspas simples para preservar a formatação do JSON ---
+            echo '${{ secrets.GCP_SA_KEY }}' > /home/ec2-user/gcp-key.json
             
             echo "Rodando a nova imagem Docker..."
             docker run -d \
