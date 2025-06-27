@@ -73,6 +73,10 @@ jobs:
               -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
               -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
               -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+              -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
+              -e AWS_S3_BUCKET_REGION=${{ secrets.AWS_S3_BUCKET_REGION }} \
+              -e aws.accessKeyId=${{ secrets.AWS_ACCESS_KEY_ID }} \
+              -e aws.secretKey=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
               -v $KEY_FILE_PATH:/app/gcp-key.json \
               -e GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json \
               matteusmoreno/casa-moreno-backend:latest

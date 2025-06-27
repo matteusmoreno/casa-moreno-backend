@@ -31,6 +31,7 @@ public class User implements UserDetails {
     private String phone;
     @Enumerated(EnumType.STRING)
     private Profile profile;
+    private String profilePictureUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String passwordResetToken;

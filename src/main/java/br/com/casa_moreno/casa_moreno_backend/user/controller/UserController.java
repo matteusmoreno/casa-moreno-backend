@@ -9,8 +9,10 @@ import br.com.casa_moreno.casa_moreno_backend.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -26,8 +28,12 @@ public class UserController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<UserDetailsResponse> createUser(@RequestBody @Valid CreateUserRequest request, UriComponentsBuilder uriBuilder) {
-        User user = userService.createUser(request);
+    public ResponseEntity<UserDetailsResponse> createUser(
+            @RequestPart("user") @Valid CreateUserRequest request,
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            UriComponentsBuilder uriBuilder) throws IOException {
+
+        User user = userService.createUser(request, file);
         URI uri = uriBuilder.path("/users/{id}").buildAndExpand(user.getUserId()).toUri();
         return ResponseEntity.created(uri).body(new UserDetailsResponse(user));
     }
@@ -56,17 +62,26 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- ENDPOINT ANTIGO ATUALIZADO PARA SOLICITAR O LINK ---
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestParam String email) {
         userService.generatePasswordResetToken(email);
         return ResponseEntity.ok("Se um usuário com este e-mail existir, um link para redefinição de senha foi enviado.");
     }
 
-    // --- NOVO ENDPOINT PARA REDEFINIR A SENHA ---
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@RequestBody @Valid PasswordResetRequest request) {
         userService.resetPassword(request.token(), request.newPassword());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{userId}/profile-picture")
+    public ResponseEntity<String> uploadProfilePicture(@PathVariable UUID userId, @RequestParam("file") MultipartFile file) {
+        try {
+            String fileUrl = userService.uploadProfilePicture(userId, file);
+            return ResponseEntity.ok(fileUrl);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erro ao fazer upload da imagem: " + e.getMessage());
+        }
     }
 }

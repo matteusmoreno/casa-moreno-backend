@@ -51,6 +51,7 @@ public class SecurityConfig {
 
                         //USERS
                         .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()
+                        .requestMatchers("/users/{userId}/profile-picture").hasAnyRole("ADMIN", "USER")
                         .requestMatchers(HttpMethod.DELETE, "/users/delete/**").hasRole("ADMIN")
 
                         //AI

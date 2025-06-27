@@ -1,7 +1,9 @@
 package br.com.casa_moreno.casa_moreno_backend.user.service;
 
 import br.com.casa_moreno.casa_moreno_backend.email.service.EmailService;
+import br.com.casa_moreno.casa_moreno_backend.exception.UserAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.UserNotFoundException;
+import br.com.casa_moreno.casa_moreno_backend.infra.StoragePort;
 import br.com.casa_moreno.casa_moreno_backend.user.constant.Profile;
 import br.com.casa_moreno.casa_moreno_backend.user.domain.User;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.CreateUserRequest;
@@ -13,7 +15,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,15 +28,21 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final EmailService emailService;
+    private final StoragePort storagePort;
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, EmailService emailService) {
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, EmailService emailService, StoragePort storagePort) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.emailService = emailService;
+        this.storagePort = storagePort;
     }
 
     @Transactional
-    public User createUser(CreateUserRequest request) {
+    public User createUser(CreateUserRequest request, MultipartFile file) throws IOException {
+        userRepository.findByUsernameOrEmail(request.username(), request.email()).ifPresent(user -> {
+            throw new UserAlreadyExistsException("Usuário ou e-mail já cadastrado.");
+        });
+
         User user = User.builder()
                 .name(request.name())
                 .username(request.username())
@@ -45,9 +55,20 @@ public class UserService implements UserDetailsService {
                 .updatedAt(null)
                 .build();
 
+        // Salva o usuário primeiro para obter o ID
+        User savedUser = userRepository.save(user);
+
+        // Se um arquivo foi enviado, faz o upload
+        if (file != null && !file.isEmpty()) {
+            String fileUrl = uploadProfilePicture(savedUser.getUserId(), file);
+            savedUser.setProfilePictureUrl(fileUrl);
+            // Salva novamente para atualizar com a URL da imagem
+            userRepository.save(savedUser);
+        }
+
         emailService.sendRegistrationConfirmationEmail(request.email(), request.name());
 
-        return userRepository.save(user);
+        return savedUser;
     }
 
     @Transactional
@@ -125,19 +146,15 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        // Encontra o usuário pelo token de reset
         User user = userRepository.findByPasswordResetToken(token)
                 .orElseThrow(() -> new UserNotFoundException("Invalid password reset token."));
 
-        // Verifica se o token expirou
         if (user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
             throw new UserNotFoundException("Password reset token has expired.");
         }
 
-        // Se o token for válido, atualiza a senha
         user.setPassword(bCryptPasswordEncoder.encode(newPassword));
 
-        // Invalida o token para que não possa ser usado novamente
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiresAt(null);
         user.setUpdatedAt(LocalDateTime.now());
@@ -145,6 +162,43 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
 
         emailService.sendPasswordChangeConfirmationEmail(user.getEmail(), user.getName());
+    }
+
+    @Transactional
+    public String uploadProfilePicture(UUID userId, MultipartFile file) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        String oldFileUrl = user.getProfilePictureUrl();
+        if (oldFileUrl != null && !oldFileUrl.isEmpty()) {
+            storagePort.deleteFile(oldFileUrl);
+        }
+
+        String fileExtension = getFileExtension(file.getOriginalFilename());
+        String fileName = "profile-pictures/" + userId + "." + fileExtension;
+
+
+        String fileUrl = storagePort.uploadFile(
+                file.getBytes(),
+                fileName,
+                file.getContentType()
+        );
+
+        user.setProfilePictureUrl(fileUrl);
+        userRepository.save(user);
+
+        return fileUrl;
+    }
+
+    private String getFileExtension(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
+            return "";
+        }
+        int lastIndexOf = fileName.lastIndexOf(".");
+        if (lastIndexOf == -1) {
+            return "";
+        }
+        return fileName.substring(lastIndexOf + 1);
     }
 
     @Override
