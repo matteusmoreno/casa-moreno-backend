@@ -2,15 +2,18 @@ package br.com.casa_moreno.casa_moreno_backend.client;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "mercado-livre-scraper", url = "${scraper.client.url}")
 public interface MercadoLivreScraperClient {
 
-    @PostMapping("/scrape")
+    @GetMapping("/mercado-livre/product-info")
     @CircuitBreaker(name = "mercadoLivreScraper")
-    MercadoLivreScraperResponse scrapeProducts(MercadoLivreScraperRequest request);
+    MercadoLivreScraperResponse getProductInfo(@RequestParam("url") String url);
 
-    @PostMapping("/sync/all")
-    String syncProducts();
+    @GetMapping("/mercado-livre/sync/stream")
+    @CircuitBreaker(name = "mercadoLivreScraper")
+    ResponseEntity<String> startFullSync();
 }

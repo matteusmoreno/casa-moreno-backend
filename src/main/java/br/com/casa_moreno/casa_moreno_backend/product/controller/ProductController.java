@@ -5,12 +5,10 @@ import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.service.ProductService;
-import br.com.casa_moreno.casa_moreno_backend.product.service.SyncTaskService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -19,18 +17,15 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
 
     private final ProductService productService;
-    private final SyncTaskService syncTaskService;
 
-    public ProductController(ProductService productService, SyncTaskService syncTaskService) {
+    public ProductController(ProductService productService) {
         this.productService = productService;
-        this.syncTaskService = syncTaskService;
     }
 
     @PostMapping("/create")
@@ -101,22 +96,21 @@ public class ProductController {
 
     @DeleteMapping("/{id}/images/delete")
     public ResponseEntity<Void> deleteProductImage(@PathVariable UUID id, @RequestBody String imageUrl) {
-        // imageUrl vem como uma string JSON, então precisamos remover as aspas
         String imageUrlClean = imageUrl.replaceAll("\"", "");
         productService.deleteProductImage(id, imageUrlClean);
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/start-sync")
-    public ResponseEntity<Map<String, String>> startSynchronization() {
-        String taskId = syncTaskService.submitTask(() -> productService.triggerSynchronization());
-
-        return ResponseEntity.accepted().body(Map.of("taskId", taskId));
+    @PatchMapping("/sync-update")
+    public ResponseEntity<Void> syncUpdate(@RequestBody Map<String, Object> updates) {
+        productService.updateProductFromSync(updates);
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/sync-status/{taskId}")
-    public ResponseEntity<SyncTaskService.TaskResult> getSynchronizationStatus(@PathVariable String taskId) {
-        SyncTaskService.TaskResult result = syncTaskService.getTaskResult(taskId);
-        return ResponseEntity.ok(result);
+    @PostMapping("/start-sync")
+    public ResponseEntity<Map<String, String>> startSynchronization() {
+        productService.triggerSynchronization();
+        String message = "Processo de sincronização disparado com sucesso. Acompanhe os logs do serviço de scraper.";
+        return ResponseEntity.accepted().body(Map.of("message", message));
     }
 }

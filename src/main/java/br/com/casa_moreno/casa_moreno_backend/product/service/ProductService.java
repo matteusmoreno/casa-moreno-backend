@@ -11,13 +11,16 @@ import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -35,7 +38,7 @@ public class ProductService {
 
     @Transactional
     public Product createProduct(CreateProductRequest request) {
-        MercadoLivreScraperResponse scraperResponse = mercadoLivreScraperClient.scrapeProducts(new MercadoLivreScraperRequest(request.mercadoLivreUrl()));
+        MercadoLivreScraperResponse scraperResponse = mercadoLivreScraperClient.getProductInfo(request.mercadoLivreUrl());
 
         Product product = Product.builder()
                 .mercadoLivreId(isProvided(request.mercadoLivreId()) ? request.mercadoLivreId() : scraperResponse.mercadoLivreId())
@@ -110,6 +113,46 @@ public class ProductService {
     }
 
     @Transactional
+    public void updateProductFromSync(Map<String, Object> updates) {
+        if (!updates.containsKey("productId")) {
+            throw new IllegalArgumentException("O payload de atualização deve conter um 'productId'.");
+        }
+
+        UUID productId = UUID.fromString(updates.get("productId").toString());
+        Product product = findProductById(productId);
+
+        ObjectMapper mapper = new ObjectMapper();
+        updates.forEach((key, value) -> {
+            switch (key) {
+                case "currentPrice":
+                    product.setCurrentPrice(mapper.convertValue(value, BigDecimal.class));
+                    break;
+                case "originalPrice":
+                    product.setOriginalPrice(mapper.convertValue(value, BigDecimal.class));
+                    break;
+                case "discountPercentage":
+                    product.setDiscountPercentage(mapper.convertValue(value, String.class));
+                    break;
+                case "installments":
+                    product.setInstallments(mapper.convertValue(value, Integer.class));
+                    break;
+                case "installmentValue":
+                    product.setInstallmentValue(mapper.convertValue(value, BigDecimal.class));
+                    break;
+                case "stockStatus":
+                    product.setStockStatus(mapper.convertValue(value, String.class));
+                    break;
+                case "productId":
+                    break;
+                default:
+                    break;
+            }
+        });
+
+        productRepository.save(product);
+    }
+
+    @Transactional
     public void deleteProduct(UUID productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
@@ -178,8 +221,8 @@ public class ProductService {
     }
 
     @Async
-    public CompletableFuture<String> triggerSynchronization() {
-        return CompletableFuture.completedFuture(mercadoLivreScraperClient.syncProducts());
+    public void triggerSynchronization() {
+        mercadoLivreScraperClient.startFullSync();
     }
 
     private boolean isProvided(String value) {
