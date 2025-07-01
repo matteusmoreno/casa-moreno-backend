@@ -220,11 +220,6 @@ public class ProductService {
         productRepository.save(product); // Salva para remover a imagem do banco de dados
     }
 
-    @Async
-    public void triggerSynchronization() {
-        mercadoLivreScraperClient.startFullSync();
-    }
-
     private boolean isProvided(String value) {
         return value != null && !value.trim().isEmpty();
     }

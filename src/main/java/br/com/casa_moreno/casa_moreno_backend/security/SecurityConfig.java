@@ -46,10 +46,6 @@ public class SecurityConfig {
                         .requestMatchers("/products/{id}/promotional").hasRole("ADMIN")
                         .requestMatchers("/products/{id}/images/set-main").hasRole("ADMIN")
                         .requestMatchers("/products/{id}/images/delete").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/products/start-sync").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/products/sync-status/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/products/start-sync").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/products/sync-update").permitAll()
 
                         //USERS
                         .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()

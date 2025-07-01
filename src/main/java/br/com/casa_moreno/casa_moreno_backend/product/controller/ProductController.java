@@ -100,17 +100,4 @@ public class ProductController {
         productService.deleteProductImage(id, imageUrlClean);
         return ResponseEntity.noContent().build();
     }
-
-    @PatchMapping("/sync-update")
-    public ResponseEntity<Void> syncUpdate(@RequestBody Map<String, Object> updates) {
-        productService.updateProductFromSync(updates);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/start-sync")
-    public ResponseEntity<Map<String, String>> startSynchronization() {
-        productService.triggerSynchronization();
-        String message = "Processo de sincronização disparado com sucesso. Acompanhe os logs do serviço de scraper.";
-        return ResponseEntity.accepted().body(Map.of("message", message));
-    }
 }
