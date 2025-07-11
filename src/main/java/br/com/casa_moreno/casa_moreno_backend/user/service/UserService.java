@@ -1,6 +1,7 @@
 package br.com.casa_moreno.casa_moreno_backend.user.service;
 
 import br.com.casa_moreno.casa_moreno_backend.email.service.EmailService;
+import br.com.casa_moreno.casa_moreno_backend.exception.PasswordResetTokenExpiredException;
 import br.com.casa_moreno.casa_moreno_backend.exception.UserAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.UserNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.infra.StoragePort;
@@ -55,15 +56,12 @@ public class UserService implements UserDetailsService {
                 .updatedAt(null)
                 .build();
 
-        // Salva o usuário primeiro para obter o ID
         User savedUser = userRepository.save(user);
 
         // Se um arquivo foi enviado, faz o upload
         if (file != null && !file.isEmpty()) {
             String fileUrl = uploadProfilePicture(savedUser.getUserId(), file);
             savedUser.setProfilePictureUrl(fileUrl);
-            // Salva novamente para atualizar com a URL da imagem
-            userRepository.save(savedUser);
         }
 
         emailService.sendRegistrationConfirmationEmail(request.email(), request.name());
@@ -150,7 +148,7 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new UserNotFoundException("Invalid password reset token."));
 
         if (user.getPasswordResetTokenExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new UserNotFoundException("Password reset token has expired.");
+            throw new PasswordResetTokenExpiredException("Password reset token has expired.");
         }
 
         user.setPassword(bCryptPasswordEncoder.encode(newPassword));

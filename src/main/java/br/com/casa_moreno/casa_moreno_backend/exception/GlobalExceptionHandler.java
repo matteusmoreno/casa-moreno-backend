@@ -47,4 +47,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 
+    @ExceptionHandler(PasswordResetTokenExpiredException.class)
+    public ResponseEntity<String> handlePasswordResetTokenExpiredException(PasswordResetTokenExpiredException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    }
+
 }
