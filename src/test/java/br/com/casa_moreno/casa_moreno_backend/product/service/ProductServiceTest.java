@@ -592,4 +592,30 @@ class ProductServiceTest {
         verify(productRepository, times(1)).findById(nonExistentProductId);
         verify(productRepository, never()).save(any(Product.class));
     }
+
+    @Test
+    @DisplayName("Should delete product successfully")
+    void shouldDeleteProductSuccessfully() {
+        UUID productId = iphoneProduct.getProductId();
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+
+        productService.deleteProduct(productId);
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, times(1)).delete(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when trying to delete a non-existent product")
+    void shouldThrowProductNotFoundExceptionWhenTryingToDeleteNonExistentProduct() {
+        UUID nonExistentProductId = UUID.randomUUID();
+
+        when(productRepository.findById(nonExistentProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class, () -> productService.deleteProduct(nonExistentProductId));
+
+        verify(productRepository, times(1)).findById(nonExistentProductId);
+        verify(productRepository, never()).delete(any(Product.class));
+    }
 }
