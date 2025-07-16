@@ -1,6 +1,7 @@
 package br.com.casa_moreno.casa_moreno_backend.product.service;
 
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperClient;
+import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperRequest;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
@@ -132,6 +133,12 @@ class ProductServiceTest {
     @Test
     @DisplayName("Should create a product successfully")
     void shouldCreateProductSuccessfully() {
+        MercadoLivreScraperRequest mercadoLivreScraperRequest = new MercadoLivreScraperRequest(createProductRequest.mercadoLivreUrl());
+
+        when(mercadoLivreScraperClient.getProductInfo(mercadoLivreScraperRequest.url()))
+                .thenReturn(mercadoLivreScraperResponse);
+        when(productRepository.existsByProductTitle(createProductRequest.productTitle())).thenReturn(false);
+        when(productRepository.existsByMercadoLivreId(createProductRequest.mercadoLivreId())).thenReturn(false);
         List<ProductGalleryImageUrl> productsGallery = new ArrayList<>();
         productsGallery.add(new ProductGalleryImageUrl(UUID.randomUUID(), "https://image1.com", null));
         productsGallery.add(new ProductGalleryImageUrl(UUID.randomUUID(), "https://image2.com", null));
