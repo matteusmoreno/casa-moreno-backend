@@ -113,46 +113,6 @@ public class ProductService {
     }
 
     @Transactional
-    public void updateProductFromSync(Map<String, Object> updates) {
-        if (!updates.containsKey("productId")) {
-            throw new IllegalArgumentException("O payload de atualização deve conter um 'productId'.");
-        }
-
-        UUID productId = UUID.fromString(updates.get("productId").toString());
-        Product product = findProductById(productId);
-
-        ObjectMapper mapper = new ObjectMapper();
-        updates.forEach((key, value) -> {
-            switch (key) {
-                case "currentPrice":
-                    product.setCurrentPrice(mapper.convertValue(value, BigDecimal.class));
-                    break;
-                case "originalPrice":
-                    product.setOriginalPrice(mapper.convertValue(value, BigDecimal.class));
-                    break;
-                case "discountPercentage":
-                    product.setDiscountPercentage(mapper.convertValue(value, String.class));
-                    break;
-                case "installments":
-                    product.setInstallments(mapper.convertValue(value, Integer.class));
-                    break;
-                case "installmentValue":
-                    product.setInstallmentValue(mapper.convertValue(value, BigDecimal.class));
-                    break;
-                case "stockStatus":
-                    product.setStockStatus(mapper.convertValue(value, String.class));
-                    break;
-                case "productId":
-                    break;
-                default:
-                    break;
-            }
-        });
-
-        productRepository.save(product);
-    }
-
-    @Transactional
     public void deleteProduct(UUID productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + productId + "' does not exist."));
