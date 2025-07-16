@@ -714,4 +714,80 @@ class ProductServiceTest {
         assertNotNull(result, "The result list should not be null");
         assertTrue(result.isEmpty(), "The result list should be empty when no promotional products exist");
     }
+
+    @Test
+    @DisplayName("Should set a new main product image successfully")
+    void shouldSetNewMainProductImageSuccessfully() {
+        ProductGalleryImageUrl image1 = new ProductGalleryImageUrl(UUID.randomUUID(), "https://image.com/main.jpg", null);
+        ProductGalleryImageUrl image2 = new ProductGalleryImageUrl(UUID.randomUUID(), "https://image.com/secondary.jpg", null);
+        List<ProductGalleryImageUrl> gallery = new ArrayList<>(List.of(image1, image2));
+        iphoneProduct.setGalleryImageUrls(gallery);
+
+        UUID productId = iphoneProduct.getProductId();
+        String newMainImageUrl = "https://image.com/secondary.jpg";
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+
+        productService.setMainProductImage(productId, newMainImageUrl);
+
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepository).save(productCaptor.capture());
+        Product savedProduct = productCaptor.getValue();
+
+        assertNotNull(savedProduct.getGalleryImageUrls());
+        assertEquals(2, savedProduct.getGalleryImageUrls().size());
+        assertEquals(newMainImageUrl, savedProduct.getGalleryImageUrls().get(0).getImageUrl(), "The new main image should now be at the first position");
+        assertEquals("https://image.com/main.jpg", savedProduct.getGalleryImageUrls().get(1).getImageUrl(), "The old main image should be at the second position");
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, times(1)).save(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when setting main image for a non-existent product")
+    void shouldThrowExceptionWhenSettingMainImageForNonExistentProduct() {
+        UUID nonExistentProductId = UUID.randomUUID();
+        String imageUrl = "https://image.com/any.jpg";
+
+        when(productRepository.findById(nonExistentProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class, () -> {
+            productService.setMainProductImage(nonExistentProductId, imageUrl);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistentProductId);
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when the image URL is not in the gallery")
+    void shouldThrowExceptionWhenImageUrlIsNotInGallery() {
+        UUID productId = iphoneProduct.getProductId();
+        String nonExistentImageUrl = "https://image.com/non-existent-image.jpg";
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+
+        assertThrows(ProductNotFoundException.class, () -> {
+            productService.setMainProductImage(productId, nonExistentImageUrl);
+        });
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("Should do nothing if the image is already the main one")
+    void shouldDoNothingIfImageIsAlreadyTheMainOne() {
+        ProductGalleryImageUrl image1 = new ProductGalleryImageUrl(UUID.randomUUID(), "https://image.com/main.jpg", null);
+        iphoneProduct.setGalleryImageUrls(new ArrayList<>(List.of(image1)));
+
+        UUID productId = iphoneProduct.getProductId();
+        String alreadyMainImageUrl = "https://image.com/main.jpg";
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+
+        productService.setMainProductImage(productId, alreadyMainImageUrl);
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, never()).save(any(Product.class));
+    }
 }
