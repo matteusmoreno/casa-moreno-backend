@@ -72,7 +72,7 @@ class UserControllerTest {
                 .password("encodedPassword123")
                 .email("regularuser@email.com")
                 .phone("88888888888")
-                .profile(Profile.USER) // Correção
+                .profile(Profile.USER)
                 .createdAt(LocalDateTime.now())
                 .active(true)
                 .build();
@@ -84,7 +84,7 @@ class UserControllerTest {
                 .password("encodedAdminPassword123")
                 .email("adminuser@email.com")
                 .phone("99999999999")
-                .profile(Profile.ADMIN) // Correção
+                .profile(Profile.ADMIN)
                 .createdAt(LocalDateTime.now())
                 .active(true)
                 .build();
