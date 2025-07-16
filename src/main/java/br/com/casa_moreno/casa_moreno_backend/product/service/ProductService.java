@@ -1,7 +1,6 @@
 package br.com.casa_moreno.casa_moreno_backend.product.service;
 
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperClient;
-import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperRequest;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
@@ -11,18 +10,13 @@ import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
