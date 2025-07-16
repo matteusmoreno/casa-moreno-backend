@@ -3,6 +3,7 @@ package br.com.casa_moreno.casa_moreno_backend.product.service;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperClient;
 import br.com.casa_moreno.casa_moreno_backend.client.MercadoLivreScraperResponse;
 import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsException;
+import br.com.casa_moreno.casa_moreno_backend.exception.ProductNotFoundException;
 import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.product.domain.ProductGalleryImageUrl;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
@@ -421,5 +422,69 @@ class ProductServiceTest {
         assertNotNull(resultPage, "The result page should not be null, even if empty.");
         assertTrue(resultPage.getContent().isEmpty(), "The content of the page should be empty.");
         assertEquals(0, resultPage.getTotalElements(), "Total elements should be 0.");
+    }
+
+    @Test
+    @DisplayName("Should return all products successfully")
+    void shouldReturnAllProductsSuccessfully() {
+        List<Product> productList = List.of(iphoneProduct, samsungProduct);
+        when(productRepository.findAll()).thenReturn(productList);
+
+        List<ProductDetailsResponse> result = productService.listAllProducts();
+
+        verify(productRepository, times(1)).findAll();
+
+        assertAll(
+                () -> assertNotNull(result, "The result list should not be null"),
+                () -> assertEquals(2, result.size(), "The result list should contain 2 products"),
+                () -> assertEquals(iphoneProduct.getProductId(), result.get(0).productId(), "First product ID should match iPhone product ID"),
+                () -> assertEquals(samsungProduct.getProductId(), result.get(1).productId(), "Second product ID should match Samsung product ID")
+        );
+    }
+
+    @Test
+    @DisplayName("Should return an empty list when no products exist")
+    void shouldReturnEmptyListWhenNoProductsExist() {
+        when(productRepository.findAll()).thenReturn(List.of());
+
+        List<ProductDetailsResponse> result = productService.listAllProducts();
+
+        verify(productRepository, times(1)).findAll();
+
+        assertNotNull(result, "The result list should not be null");
+        assertTrue(result.isEmpty(), "The result list should be empty when no products exist");
+    }
+
+    @Test
+    @DisplayName("Should return product details by ID successfully")
+    void shouldReturnProductDetailsByIdSuccessfully() {
+        UUID productId = iphoneProduct.getProductId();
+
+        when(productRepository.findById(productId))
+                .thenReturn(java.util.Optional.of(iphoneProduct));
+
+        Product result = productService.findProductById(productId);
+
+        verify(productRepository, times(1)).findById(productId);
+
+        assertAll(
+                () -> assertNotNull(result, "The result product should not be null"),
+                () -> assertEquals(iphoneProduct.getProductId(), result.getProductId(), "Product ID should match"),
+                () -> assertEquals(iphoneProduct.getProductTitle(), result.getProductTitle(), "Product title should match"),
+                () -> assertEquals(iphoneProduct.getCurrentPrice(), result.getCurrentPrice(), "Current price should match")
+        );
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when product ID does not exist")
+    void shouldThrowProductNotFoundExceptionWhenProductIdDoesNotExist() {
+        UUID nonExistentProductId = UUID.randomUUID();
+
+        when(productRepository.findById(nonExistentProductId))
+                .thenReturn(java.util.Optional.empty());
+
+        assertThrows(ProductNotFoundException.class, () -> productService.findProductById(nonExistentProductId));
+
+        verify(productRepository, times(1)).findById(nonExistentProductId);
     }
 }
