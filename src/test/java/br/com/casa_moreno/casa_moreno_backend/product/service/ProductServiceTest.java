@@ -618,4 +618,34 @@ class ProductServiceTest {
         verify(productRepository, times(1)).findById(nonExistentProductId);
         verify(productRepository, never()).delete(any(Product.class));
     }
+
+    @Test
+    @DisplayName("Should return a list of distinct categories successfully")
+    void shouldReturnDistinctCategoriesSuccessfully() {
+        List<String> expectedCategories = List.of("Electronics", "Books", "Home Appliances");
+
+        when(productRepository.findDistinctProductCategories()).thenReturn(expectedCategories);
+
+        List<String> actualCategories = productService.getDistinctCategories();
+
+        assertNotNull(actualCategories, "The returned list should not be null.");
+        assertEquals(3, actualCategories.size(), "The list should contain 3 categories.");
+        assertEquals(expectedCategories, actualCategories, "The returned list should match the expected categories.");
+        assertTrue(actualCategories.contains("Electronics"), "The list should contain 'Electronics'.");
+
+        verify(productRepository, times(1)).findDistinctProductCategories();
+    }
+
+    @Test
+    @DisplayName("Should return an empty list when no distinct categories are found")
+    void shouldReturnEmptyListWhenNoCategoriesAreFound() {
+        when(productRepository.findDistinctProductCategories()).thenReturn(List.of());
+
+        List<String> actualCategories = productService.getDistinctCategories();
+
+        assertNotNull(actualCategories, "The returned list should not be null, even if empty.");
+        assertTrue(actualCategories.isEmpty(), "The list should be empty when no categories are found.");
+
+        verify(productRepository, times(1)).findDistinctProductCategories();
+    }
 }
