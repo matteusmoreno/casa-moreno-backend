@@ -1,4 +1,4 @@
-package br.com.casa_moreno.casa_moreno_backend.login;
+package br.com.casa_moreno.casa_moreno_backend.login.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

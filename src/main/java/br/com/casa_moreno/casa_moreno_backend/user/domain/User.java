@@ -1,6 +1,6 @@
 package br.com.casa_moreno.casa_moreno_backend.user.domain;
 
-import br.com.casa_moreno.casa_moreno_backend.login.LoginRequest;
+import br.com.casa_moreno.casa_moreno_backend.login.dto.LoginRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.constant.Profile;
 import jakarta.persistence.*;
 import lombok.*;

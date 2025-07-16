@@ -1,5 +1,8 @@
-package br.com.casa_moreno.casa_moreno_backend.login;
+package br.com.casa_moreno.casa_moreno_backend.login.controller;
 
+import br.com.casa_moreno.casa_moreno_backend.login.dto.LoginRequest;
+import br.com.casa_moreno.casa_moreno_backend.login.dto.LoginResponse;
+import br.com.casa_moreno.casa_moreno_backend.login.service.LoginService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -1,5 +1,7 @@
-package br.com.casa_moreno.casa_moreno_backend.login;
+package br.com.casa_moreno.casa_moreno_backend.login.service;
 
+import br.com.casa_moreno.casa_moreno_backend.login.dto.LoginRequest;
+import br.com.casa_moreno.casa_moreno_backend.login.dto.LoginResponse;
 import br.com.casa_moreno.casa_moreno_backend.security.TokenService; // IMPORT
 import br.com.casa_moreno.casa_moreno_backend.user.domain.User;
 import br.com.casa_moreno.casa_moreno_backend.user.repository.UserRepository;
