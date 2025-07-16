@@ -177,7 +177,7 @@ public class ProductService {
         if (!removed) {
             throw new ProductNotFoundException("Image with URL '" + imageUrlToDelete + "' not found in product gallery.");
         }
-        productRepository.save(product); // Salva para remover a imagem do banco de dados
+        productRepository.save(product);
     }
 
     private boolean isProvided(String value) {

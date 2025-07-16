@@ -790,4 +790,68 @@ class ProductServiceTest {
         verify(productRepository, times(1)).findById(productId);
         verify(productRepository, never()).save(any(Product.class));
     }
+
+    @Test
+    @DisplayName("Should delete product gallery image successfully")
+    void shouldDeleteProductGalleryImageSuccessfully() {
+        ProductGalleryImageUrl image1 = new ProductGalleryImageUrl(UUID.randomUUID(), "https://image.com/image1.jpg", null);
+        ProductGalleryImageUrl image2 = new ProductGalleryImageUrl(UUID.randomUUID(), "https://image.com/image2.jpg", null);
+        iphoneProduct.setGalleryImageUrls(new ArrayList<>(List.of(image1, image2)));
+
+        UUID productId = iphoneProduct.getProductId();
+        String imageToDelete = "https://image.com/image1.jpg";
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+
+        productService.deleteProductImage(productId, imageToDelete);
+
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+
+        verify(productRepository).save(productCaptor.capture());
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, times(1)).save(any(Product.class));
+
+        Product savedProduct = productCaptor.getValue();
+
+        assertNotNull(savedProduct.getGalleryImageUrls());
+        assertEquals(1, savedProduct.getGalleryImageUrls().size());
+        assertEquals(image2.getImageUrl(), savedProduct.getGalleryImageUrls().get(0).getImageUrl(), "The remaining image should be the second one");
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when deleting an image from a non-existent product")
+    void shouldThrowExceptionWhenDeletingImageFromNonExistentProduct() {
+        UUID nonExistentProductId = UUID.randomUUID();
+        String imageUrl = "https://qualquer-imagem.com";
+
+        when(productRepository.findById(nonExistentProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class, () -> {
+            productService.deleteProductImage(nonExistentProductId, imageUrl);
+        });
+
+        verify(productRepository, times(1)).findById(nonExistentProductId);
+        verify(productRepository, never()).save(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when image URL to delete is not in the gallery")
+    void shouldThrowExceptionWhenImageUrlToDeleteIsNotInGallery() {
+        ProductGalleryImageUrl image1 = new ProductGalleryImageUrl(UUID.randomUUID(), "https://image.com/image1.jpg", null);
+        iphoneProduct.setGalleryImageUrls(new ArrayList<>(List.of(image1)));
+
+        UUID productId = iphoneProduct.getProductId();
+        String nonExistentImageUrl = "https://url-que-nao-existe.com";
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+
+        ProductNotFoundException exception = assertThrows(ProductNotFoundException.class, () -> {
+            productService.deleteProductImage(productId, nonExistentImageUrl);
+        });
+
+        assertTrue(exception.getMessage().contains("not found in product gallery"));
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, never()).save(any(Product.class));
+    }
 }
