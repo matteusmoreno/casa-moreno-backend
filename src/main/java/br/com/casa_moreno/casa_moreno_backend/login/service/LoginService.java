@@ -30,7 +30,7 @@ public class LoginService {
     public LoginResponse loginAndGenerateToken(LoginRequest loginRequest) {
         String loginEmailOrUsername = loginRequest.username();
 
-        User user = userRepository.findByUsernameOrEmail(loginEmailOrUsername, loginEmailOrUsername)
+        User user = userRepository.findByUsernameOrEmail(loginEmailOrUsername)
                 .orElseThrow(() -> new BadCredentialsException("Username or email is incorrect"));
 
         if (!user.isLoginCorrect(loginRequest, bCryptPasswordEncoder)) {
@@ -38,7 +38,6 @@ public class LoginService {
         }
 
         String tokenJwt = tokenService.generateToken(user);
-
 
         Instant expiresAt = Instant.now().plusSeconds(60 * 60 * 24);
         LocalDateTime expiresTokenAt = LocalDateTime.ofInstant(expiresAt, ZoneId.systemDefault());

@@ -71,14 +71,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should create a new user successfully without profile picture")
     void shouldCreateNewUserSuccessfullyWithoutProfilePicture() throws IOException {
-        when(userRepository.findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email())).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameOrEmail(createUserRequest.username())).thenReturn(Optional.empty());
         when(bCryptPasswordEncoder.encode(createUserRequest.password())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         doNothing().when(emailService).sendRegistrationConfirmationEmail(createUserRequest.email(), createUserRequest.name());
 
         User result = userService.createUser(createUserRequest, null);
 
-        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email());
+        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username());
         verify(bCryptPasswordEncoder, times(1)).encode(createUserRequest.password());
         verify(userRepository, times(1)).save(any(User.class));
         verify(emailService, times(1)).sendRegistrationConfirmationEmail(anyString(), anyString());
@@ -140,7 +140,7 @@ class UserServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        when(userRepository.findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email())).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameOrEmail(createUserRequest.username())).thenReturn(Optional.empty());
         when(bCryptPasswordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(storagePort.uploadFile(any(), anyString(), anyString())).thenReturn(expectedFileUrl);
         when(userRepository.save(any(User.class)))
@@ -151,7 +151,7 @@ class UserServiceTest {
 
         User result = userService.createUser(createUserRequest, mockFile);
 
-        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email());
+        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username());
         verify(bCryptPasswordEncoder, times(1)).encode(createUserRequest.password());
         verify(userRepository, times(2)).save(any(User.class));
         verify(emailService, times(1)).sendRegistrationConfirmationEmail(createUserRequest.email(), createUserRequest.name());
@@ -184,14 +184,14 @@ class UserServiceTest {
                 new byte[0]
         );
 
-        when(userRepository.findByUsernameOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameOrEmail(anyString())).thenReturn(Optional.empty());
         when(bCryptPasswordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         doNothing().when(emailService).sendRegistrationConfirmationEmail(anyString(), anyString());
 
         User result = userService.createUser(createUserRequest, emptyFile);
 
-        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email());
+        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username());
         verify(bCryptPasswordEncoder, times(1)).encode(createUserRequest.password());
         verify(userRepository, times(1)).save(any(User.class));
         verify(emailService, times(1)).sendRegistrationConfirmationEmail(anyString(), anyString());
@@ -217,14 +217,14 @@ class UserServiceTest {
     @Test
     @DisplayName("Should throw UserAlreadyExistsException when creating user with existing username or email")
     void shouldThrowUserAlreadyExistsExceptionWhenCreatingUserWithExistingUsernameOrEmail() throws IOException {
-        when(userRepository.findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email()))
+        when(userRepository.findByUsernameOrEmail(createUserRequest.username()))
                 .thenReturn(Optional.of(savedUser));
 
         Exception exception = assertThrows(UserAlreadyExistsException.class, () -> {
             userService.createUser(createUserRequest, null);
         });
 
-        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username(), createUserRequest.email());
+        verify(userRepository, times(1)).findByUsernameOrEmail(createUserRequest.username());
         verify(bCryptPasswordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any(User.class));
         verify(emailService, never()).sendRegistrationConfirmationEmail(anyString(), anyString());

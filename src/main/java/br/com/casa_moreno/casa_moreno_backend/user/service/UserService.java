@@ -40,7 +40,7 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public User createUser(CreateUserRequest request, MultipartFile file) throws IOException {
-        userRepository.findByUsernameOrEmail(request.username(), request.email()).ifPresent(user -> {
+        userRepository.findByUsernameOrEmail(request.username()).ifPresent(user -> {
             throw new UserAlreadyExistsException("Usuário ou e-mail já cadastrado.");
         });
 
