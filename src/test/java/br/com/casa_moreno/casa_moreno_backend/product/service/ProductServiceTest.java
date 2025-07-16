@@ -6,6 +6,7 @@ import br.com.casa_moreno.casa_moreno_backend.exception.ProductAlreadyExistsExce
 import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.product.domain.ProductGalleryImageUrl;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
+import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,6 +43,8 @@ class ProductServiceTest {
 
     private MercadoLivreScraperResponse mercadoLivreScraperResponse;
     private CreateProductRequest createProductRequest;
+    private Product iphoneProduct;
+    private Product samsungProduct;
 
     @BeforeEach
     void setUp() {
@@ -75,6 +82,48 @@ class ProductServiceTest {
                 List.of("https://image1.com", "https://image2.com"),
                 "in stock"
         );
+
+        iphoneProduct = Product.builder()
+                .productId(UUID.randomUUID())
+                .mercadoLivreId("ML12345")
+                .mercadoLivreUrl("https://mercadolivre.com.br/product/12345")
+                .productTitle("iPhone 14 Pro")
+                .fullDescription("Latest Apple iPhone with advanced features.")
+                .productBrand("Apple")
+                .productCondition("New")
+                .currentPrice(BigDecimal.valueOf(999.99))
+                .originalPrice(BigDecimal.valueOf(1099.99))
+                .discountPercentage("9% OFF")
+                .installments(12)
+                .installmentValue(BigDecimal.valueOf(83.33))
+                .galleryImageUrls(List.of(new ProductGalleryImageUrl(UUID.randomUUID(), "https://image1.com", null)))
+                .stockStatus("in stock")
+                .affiliateLink("https://affiliate-link.com/iphone14pro")
+                .productCategory("Electronics")
+                .productSubcategory("Smartphones")
+                .isPromotional(false)
+                .build();
+
+        samsungProduct = Product.builder()
+                .productId(UUID.randomUUID())
+                .mercadoLivreId("ML67890")
+                .mercadoLivreUrl("https://mercadolivre.com.br/product/67890")
+                .productTitle("Samsung Galaxy S23")
+                .fullDescription("Latest Samsung smartphone with cutting-edge technology.")
+                .productBrand("Samsung")
+                .productCondition("New")
+                .currentPrice(BigDecimal.valueOf(799.99))
+                .originalPrice(BigDecimal.valueOf(899.99))
+                .discountPercentage("11% OFF")
+                .installments(10)
+                .installmentValue(BigDecimal.valueOf(79.99))
+                .galleryImageUrls(List.of(new ProductGalleryImageUrl(UUID.randomUUID(), "https://image2.com", null)))
+                .stockStatus("in stock")
+                .affiliateLink("https://affiliate-link.com/samsungs23")
+                .productCategory("Electronics")
+                .productSubcategory("Smartphones")
+                .isPromotional(false)
+                .build();
     }
 
     @Test
@@ -300,4 +349,77 @@ class ProductServiceTest {
         verify(productRepository, never()).save(any(Product.class));
     }
 
+    @Test
+    @DisplayName("Should return products by category paginated")
+    void shouldReturnProductsByCategoryPaginated() {
+        String category = "Smartphones";
+        Pageable pageable = PageRequest.of(0, 10); // Página 0, com 10 itens
+        List<Product> productList = List.of(iphoneProduct, samsungProduct);
+
+        Page<Product> productPage = new PageImpl<>(productList, pageable, productList.size());
+
+        when(productRepository.findAllByProductCategoryIgnoreCase(pageable, category))
+                .thenReturn(productPage);
+
+        Page<ProductDetailsResponse> resultPage = productService.findProductsByCategory(pageable, category);
+
+        verify(productRepository, times(1)).findAllByProductCategoryIgnoreCase(pageable, category);
+
+        List<ProductDetailsResponse> content = resultPage.getContent();
+        ProductDetailsResponse firstProduct = content.get(0);
+        ProductDetailsResponse secondProduct = content.get(1);
+
+        assertAll("Verify pagination metadata and content",
+                // General Asserts
+                () -> assertNotNull(resultPage, "The result page should not be null."),
+                () -> assertEquals(2, resultPage.getTotalElements(), "Total elements should be 2."),
+                () -> assertEquals(1, resultPage.getTotalPages(), "Total pages should be 1."),
+                () -> assertEquals(2, content.size(), "The content list should have 2 products."),
+
+                // Product 0 Asserts (iPhone)
+                () -> assertEquals(iphoneProduct.getProductId(), firstProduct.productId(), "Product 0 ID should match."),
+                () -> assertEquals(iphoneProduct.getProductTitle(), firstProduct.productTitle(), "Product 0 title should match."),
+                () -> assertEquals(iphoneProduct.getProductBrand(), firstProduct.productBrand(), "Product 0 brand should match."),
+                () -> assertEquals(0, iphoneProduct.getCurrentPrice().compareTo(firstProduct.currentPrice()), "Product 0 current price should match."),
+
+                // Product 1 Asserts (Samsung)
+                () -> assertEquals(samsungProduct.getProductId(), secondProduct.productId(), "Product 1 ID should match."),
+                () -> assertEquals(samsungProduct.getProductTitle(), secondProduct.productTitle(), "Product 1 title should match."),
+                () -> assertEquals(samsungProduct.getProductBrand(), secondProduct.productBrand(), "Product 1 brand should match."),
+                () -> assertEquals(0, samsungProduct.getCurrentPrice().compareTo(secondProduct.currentPrice()), "Product 1 current price should match.")
+        );
+    }
+
+    @Test
+    @DisplayName("Should return products when searching with a different case category")
+    void shouldReturnProductsWhenSearchingWithDifferentCaseCategory() {
+        String categoryWithDifferentCase = "smartphones"; // Categoria em minúsculas
+        Pageable pageable = PageRequest.of(0, 10);
+        List<Product> productList = List.of(iphoneProduct, samsungProduct); // Seus produtos com categoria "Smartphones"
+        Page<Product> productPageFromRepo = new PageImpl<>(productList, pageable, productList.size());
+
+        when(productRepository.findAllByProductCategoryIgnoreCase(pageable, categoryWithDifferentCase))
+                .thenReturn(productPageFromRepo);
+
+        Page<ProductDetailsResponse> resultPage = productService.findProductsByCategory(pageable, categoryWithDifferentCase);
+
+        assertEquals(2, resultPage.getTotalElements(), "Should find 2 products even with different case.");
+        assertEquals("iPhone 14 Pro", resultPage.getContent().get(0).productTitle());
+    }
+
+    @Test
+    @DisplayName("Should return an empty page when no products match the category")
+    void shouldReturnEmptyPageWhenNoProductsMatchCategory() {
+        String category = "NonExistentCategory";
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(productRepository.findAllByProductCategoryIgnoreCase(pageable, category))
+                .thenReturn(Page.empty(pageable));
+
+        Page<ProductDetailsResponse> resultPage = productService.findProductsByCategory(pageable, category);
+
+        assertNotNull(resultPage, "The result page should not be null, even if empty.");
+        assertTrue(resultPage.getContent().isEmpty(), "The content of the page should be empty.");
+        assertEquals(0, resultPage.getTotalElements(), "Total elements should be 0.");
+    }
 }
