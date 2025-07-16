@@ -90,7 +90,7 @@ public class ProductService {
     @Transactional
     public Product updateProduct(UpdateProductRequest request) {
         Product product = productRepository.findById(request.productId())
-                .orElseThrow(() -> new ProductAlreadyExistsException("Product with ID '" + request.productId() + "' does not exist."));
+                .orElseThrow(() -> new ProductNotFoundException("Product with ID '" + request.productId() + "' does not exist."));
 
         if(request.mercadoLivreId() != null) product.setMercadoLivreId(request.mercadoLivreId());
         if(request.mercadoLivreUrl() != null) product.setMercadoLivreUrl(request.mercadoLivreUrl());

@@ -8,6 +8,7 @@ import br.com.casa_moreno.casa_moreno_backend.product.domain.Product;
 import br.com.casa_moreno.casa_moreno_backend.product.domain.ProductGalleryImageUrl;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.CreateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.dto.ProductDetailsResponse;
+import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -486,5 +488,108 @@ class ProductServiceTest {
         assertThrows(ProductNotFoundException.class, () -> productService.findProductById(nonExistentProductId));
 
         verify(productRepository, times(1)).findById(nonExistentProductId);
+    }
+
+    @Test
+    @DisplayName("Should update product successfully")
+    void shouldUpdateProductSuccessfully() {
+        UUID productId = iphoneProduct.getProductId();
+        UpdateProductRequest updatedProductRequest = new UpdateProductRequest(
+                productId,
+                "Updated iPhone 14 Pro",
+                "https://new-url.com",
+                "ML-UPDATED", "Updated description", "Apple", "New",
+                BigDecimal.valueOf(950.00), BigDecimal.valueOf(1050.00), "10% OFF",
+                12, BigDecimal.valueOf(79.17),
+                List.of("https://new-image.com"), "in stock", "https://new-affiliate.com",
+                "Electronics", "Premium Smartphones"
+        );
+
+        iphoneProduct.setGalleryImageUrls(new ArrayList<>(iphoneProduct.getGalleryImageUrls()));
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+        when(productRepository.save(any(Product.class))).thenReturn(iphoneProduct);
+
+        productService.updateProduct(updatedProductRequest);
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, times(1)).save(productCaptor.capture());
+
+        Product capturedProduct = productCaptor.getValue();
+
+        assertAll(
+                () -> assertEquals(updatedProductRequest.productTitle(), capturedProduct.getProductTitle(), "Product title should be updated"),
+                () -> assertEquals(updatedProductRequest.mercadoLivreUrl(), capturedProduct.getMercadoLivreUrl(), "Mercado Livre URL should be updated"),
+                () -> assertEquals(updatedProductRequest.mercadoLivreId(), capturedProduct.getMercadoLivreId(), "Mercado Livre ID should be updated"),
+                () -> assertEquals(updatedProductRequest.fullDescription(), capturedProduct.getFullDescription(), "Full description should be updated"),
+                () -> assertEquals(updatedProductRequest.productBrand(), capturedProduct.getProductBrand(), "Product brand should be updated"),
+                () -> assertEquals(updatedProductRequest.productCondition(), capturedProduct.getProductCondition(), "Product condition should be updated"),
+                () -> assertEquals(0, updatedProductRequest.currentPrice().compareTo(capturedProduct.getCurrentPrice()), "Current price should be updated"),
+                () -> assertEquals(0, updatedProductRequest.originalPrice().compareTo(capturedProduct.getOriginalPrice()), "Original price should be updated"),
+                () -> assertEquals(updatedProductRequest.discountPercentage(), capturedProduct.getDiscountPercentage(), "Discount percentage should be updated"),
+                () -> assertEquals(updatedProductRequest.installments(), capturedProduct.getInstallments(), "Installments should be updated"),
+                () -> assertEquals(0, updatedProductRequest.installmentValue().compareTo(capturedProduct.getInstallmentValue()), "Installment value should be updated"),
+                () -> assertEquals(updatedProductRequest.stockStatus(), capturedProduct.getStockStatus(), "Stock status should be updated"),
+                () -> assertEquals(updatedProductRequest.affiliateLink(), capturedProduct.getAffiliateLink(), "Affiliate link should be updated"),
+                () -> assertEquals(updatedProductRequest.productCategory(), capturedProduct.getProductCategory(), "Category should be updated"),
+                () -> assertEquals(updatedProductRequest.productSubcategory(), capturedProduct.getProductSubcategory(), "Subcategory should be updated"),
+                () -> assertFalse(capturedProduct.getIsPromotional(), "The product should not be promotional by default")
+        );
+    }
+
+    @Test
+    @DisplayName("Should not update product fields when update request has null values")
+    void shouldNotUpdateProductFieldsWhenUpdateRequestHasNullValues() {
+        UUID productId = iphoneProduct.getProductId();
+        String originalTitle = iphoneProduct.getProductTitle();
+        BigDecimal originalPrice = iphoneProduct.getCurrentPrice();
+
+        UpdateProductRequest emptyUpdateRequest = new UpdateProductRequest(
+                productId,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+        );
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        productService.updateProduct(emptyUpdateRequest);
+        ArgumentCaptor<Product> productCaptor = ArgumentCaptor.forClass(Product.class);
+
+        verify(productRepository).save(productCaptor.capture());
+        Product capturedProduct = productCaptor.getValue();
+
+        assertAll(
+                () -> assertEquals(originalTitle, capturedProduct.getProductTitle(), "Title should not have changed"),
+                () -> assertEquals(0, originalPrice.compareTo(capturedProduct.getCurrentPrice()), "Price should not have changed"),
+                () -> assertNotNull(capturedProduct.getFullDescription(), "Description should not have become null"),
+                () -> assertNotNull(capturedProduct.getProductBrand(), "Brand should not have become null")
+        );
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, times(1)).save(any(Product.class));
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when trying to update a non-existent product")
+    void shouldThrowProductNotFoundExceptionWhenTryingToUpdateNonExistentProduct() {
+        UUID nonExistentProductId = UUID.randomUUID();
+
+        UpdateProductRequest updateRequest = new UpdateProductRequest(
+                nonExistentProductId,
+                "Updated Product", "https://new-url.com", "ML-UPDATED",
+                "Updated description", "Brand", "New",
+                BigDecimal.valueOf(100.00), BigDecimal.valueOf(120.00),
+                "16% OFF", 3, BigDecimal.valueOf(33.33),
+                List.of("https://image1.com"), "in stock",
+                "https://affiliate-link.com", "Electronics", "Smartphones"
+        );
+
+        when(productRepository.findById(nonExistentProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class, () -> productService.updateProduct(updateRequest));
+
+        verify(productRepository, times(1)).findById(nonExistentProductId);
+        verify(productRepository, never()).save(any(Product.class));
     }
 }
