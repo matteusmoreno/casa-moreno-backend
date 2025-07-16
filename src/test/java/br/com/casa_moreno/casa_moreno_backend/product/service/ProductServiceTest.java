@@ -648,4 +648,38 @@ class ProductServiceTest {
 
         verify(productRepository, times(1)).findDistinctProductCategories();
     }
+
+    @Test
+    @DisplayName("Should update promotional status of a product successfully")
+    void shouldUpdatePromotionalStatusSuccessfully() {
+        UUID productId = iphoneProduct.getProductId();
+        Boolean newPromotionalStatus = true;
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(iphoneProduct));
+        when(productRepository.save(any(Product.class))).thenReturn(iphoneProduct);
+
+        productService.updatePromotionalStatus(productId, newPromotionalStatus);
+        ArgumentCaptor<Product> productArgumentCaptor = ArgumentCaptor.forClass(Product.class);
+
+        verify(productRepository, times(1)).findById(productId);
+        verify(productRepository, times(1)).save(productArgumentCaptor.capture());
+
+        Product updatedProduct = productArgumentCaptor.getValue();
+
+        assertTrue(updatedProduct.getIsPromotional(), "The product should be marked as promotional.");
+    }
+
+    @Test
+    @DisplayName("Should throw ProductNotFoundException when trying to update promotional status of a non-existent product")
+    void shouldThrowProductNotFoundExceptionWhenUpdatingPromotionalStatusOfNonExistentProduct() {
+        UUID nonExistentProductId = UUID.randomUUID();
+        Boolean newPromotionalStatus = true;
+
+        when(productRepository.findById(nonExistentProductId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class, () -> productService.updatePromotionalStatus(nonExistentProductId, newPromotionalStatus));
+
+        verify(productRepository, times(1)).findById(nonExistentProductId);
+        verify(productRepository, never()).save(any(Product.class));
+    }
 }
