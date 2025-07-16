@@ -682,4 +682,36 @@ class ProductServiceTest {
         verify(productRepository, times(1)).findById(nonExistentProductId);
         verify(productRepository, never()).save(any(Product.class));
     }
+
+    @Test
+    @DisplayName("Should return all promotional products successfully")
+    void shouldReturnAllPromotionalProductsSuccessfully() {
+        iphoneProduct.setIsPromotional(true);
+        samsungProduct.setIsPromotional(true);
+        List<Product> promotionalProducts = List.of(iphoneProduct, samsungProduct);
+
+        when(productRepository.findAllByIsPromotionalTrue()).thenReturn(promotionalProducts);
+
+        List<ProductDetailsResponse> result = productService.findAllPromotionalProducts();
+
+        verify(productRepository, times(1)).findAllByIsPromotionalTrue();
+
+        assertNotNull(result, "The result list should not be null");
+        assertEquals(2, result.size(), "The result list should contain 2 promotional products");
+        assertEquals(iphoneProduct.getProductId(), result.get(0).productId(), "First product ID should match iPhone product ID");
+        assertEquals(samsungProduct.getProductId(), result.get(1).productId(), "Second product ID should match Samsung product ID");
+    }
+
+    @Test
+    @DisplayName("Should return an empty list when no promotional products exist")
+    void shouldReturnEmptyListWhenNoPromotionalProductsExist() {
+        when(productRepository.findAllByIsPromotionalTrue()).thenReturn(List.of());
+
+        List<ProductDetailsResponse> result = productService.findAllPromotionalProducts();
+
+        verify(productRepository, times(1)).findAllByIsPromotionalTrue();
+
+        assertNotNull(result, "The result list should not be null");
+        assertTrue(result.isEmpty(), "The result list should be empty when no promotional products exist");
+    }
 }
