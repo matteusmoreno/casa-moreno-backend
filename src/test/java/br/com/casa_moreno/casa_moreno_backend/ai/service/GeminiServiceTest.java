@@ -40,7 +40,7 @@ class GeminiServiceTest {
     @BeforeEach
     void setUp() throws IOException {
         Resource mockResource = new ByteArrayResource(fakeStoreContext.getBytes());
-        when(resourceLoader.getResource("classpath:prompts/store_context.txt")).thenReturn(mockResource);
+        when(resourceLoader.getResource("classpath:ai/contexto-loja.txt")).thenReturn(mockResource);
         geminiService = new GeminiService(generativeModel, resourceLoader);
     }
 
