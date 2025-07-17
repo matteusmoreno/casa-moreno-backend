@@ -21,9 +21,12 @@ public class GeminiConfig {
     private String modelName;
 
     @Bean
-    public GenerativeModel generativeModel() throws IOException {
-        try (VertexAI vertexAi = new VertexAI(projectId, location)) {
-            return new GenerativeModel(modelName, vertexAi);
-        }
+    public VertexAI vertexAI() throws IOException {
+        return new VertexAI(projectId, location);
+    }
+
+    @Bean
+    public GenerativeModel generativeModel(VertexAI vertexAi) {
+        return new GenerativeModel(modelName, vertexAi);
     }
 }
