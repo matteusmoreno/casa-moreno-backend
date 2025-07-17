@@ -33,7 +33,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/swagger-ui/**", "/v3/api-docs/**", "/casa-moreno-docs/**").permitAll()
                         .requestMatchers("/login/oauth2/**").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
 
