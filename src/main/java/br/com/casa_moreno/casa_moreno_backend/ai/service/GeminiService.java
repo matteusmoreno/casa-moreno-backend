@@ -61,7 +61,7 @@ public class GeminiService {
     }
 
     private String loadStoreContext() throws IOException {
-        Resource resource = resourceLoader.getResource("classpath:prompts/store_context.txt");
+        Resource resource = resourceLoader.getResource("classpath:ai/contexto-loja.txt");
         return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
     }
 }
