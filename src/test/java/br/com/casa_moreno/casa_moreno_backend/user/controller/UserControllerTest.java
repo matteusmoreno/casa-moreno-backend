@@ -1,6 +1,5 @@
 package br.com.casa_moreno.casa_moreno_backend.user.controller;
 
-import br.com.casa_moreno.casa_moreno_backend.exception.GlobalExceptionHandler;
 import br.com.casa_moreno.casa_moreno_backend.exception.PasswordResetTokenExpiredException;
 import br.com.casa_moreno.casa_moreno_backend.exception.UserAlreadyExistsException;
 import br.com.casa_moreno.casa_moreno_backend.exception.UserNotFoundException;
@@ -12,19 +11,16 @@ import br.com.casa_moreno.casa_moreno_backend.user.dto.UpdateUserRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.UserDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -38,57 +34,41 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @DisplayName("User Controller Tests")
 class UserControllerTest {
 
-    // PRECISA TESTAR OS ENDPOINTS COM AS ROLES DE USUÁRIO E ADMINISTRADOR
-
+    @Autowired
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    @Mock
+    @Autowired
+    private ObjectMapper objectMapper;
+    @MockitoBean
     private UserService userService;
 
-    @InjectMocks
-    private UserController userController;
+    private final User regularUser = User.builder()
+            .userId(UUID.fromString("c0a8011c-c0d1-11ed-8a4a-0242ac120002"))
+            .name("Regular User")
+            .username("regularuser")
+            .password("encodedPassword123")
+            .email("regularuser@email.com")
+            .phone("88888888888")
+            .profile(Profile.USER)
+            .createdAt(LocalDateTime.now())
+            .active(true)
+            .build();
 
-    private User regularUser;
-    private User adminUser;
-
-    @BeforeEach
-    void setUp() {
-        objectMapper.registerModule(new JavaTimeModule());
-
-        mockMvc = MockMvcBuilders.standaloneSetup(userController)
-                .setControllerAdvice(new GlobalExceptionHandler())
-                .setValidator(new LocalValidatorFactoryBean())
-                .build();
-
-        regularUser = User.builder()
-                .userId(UUID.fromString("c0a8011c-c0d1-11ed-8a4a-0242ac120002"))
-                .name("Regular User")
-                .username("regularuser")
-                .password("encodedPassword123")
-                .email("regularuser@email.com")
-                .phone("88888888888")
-                .profile(Profile.USER)
-                .createdAt(LocalDateTime.now())
-                .active(true)
-                .build();
-
-        adminUser = User.builder()
-                .userId(UUID.fromString("c0a8011c-c0d1-11ed-8a4a-0242ac120001"))
-                .name("Admin User")
-                .username("admin")
-                .password("encodedAdminPassword123")
-                .email("adminuser@email.com")
-                .phone("99999999999")
-                .profile(Profile.ADMIN)
-                .createdAt(LocalDateTime.now())
-                .active(true)
-                .build();
-    }
+    private final User adminUser = User.builder()
+            .userId(UUID.fromString("c0a8011c-c0d1-11ed-8a4a-0242ac120001"))
+            .name("Admin User")
+            .username("admin")
+            .password("encodedAdminPassword123")
+            .email("adminuser@email.com")
+            .phone("99999999999")
+            .profile(Profile.ADMIN)
+            .createdAt(LocalDateTime.now())
+            .active(true)
+            .build();
 
     @Test
     @DisplayName("Should create user without file and return 201 Created")
@@ -154,6 +134,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should return User by username and return 200 OK")
+    @WithMockUser(roles = {"USER", "ADMIN"})
     void shouldReturnUserByUsernameAndReturn200OK() throws Exception {
         String username = "regularuser";
         when(userService.getUserByUsername(username)).thenReturn(regularUser);
@@ -167,6 +148,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should return 404 Not Found when user by username does not exist")
+    @WithMockUser(roles = {"USER", "ADMIN"})
     void shouldReturn404NotFoundWhenUserByUsernameDoesNotExist() throws Exception {
         String username = "nonexistentuser";
         String errorMessage = "User not found with username:" + username;
@@ -181,6 +163,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should return all users and return 200 OK")
+    @WithMockUser(roles = "ADMIN")
     void shouldReturnAllUsersAndReturn200OK() throws Exception {
         when(userService.findAllUsers()).thenReturn(List.of(new UserDetailsResponse(regularUser), new UserDetailsResponse(adminUser)));
 
@@ -192,7 +175,37 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("Should return empty list when no users exist")
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnEmptyListWhenNoUsersExist() throws Exception {
+        when(userService.findAllUsers()).thenReturn(List.of());
+
+        mockMvc.perform(
+                get("/users/find-all-users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should return 401 Unauthorized when accessing user list without authentication")
+    void shouldReturn401UnauthorizedWhenAccessingUserListWithoutAuthentication() throws Exception {
+        mockMvc.perform(
+                get("/users/find-all-users"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden when accessing user list without ADMIN role")
+    @WithMockUser(roles = "USER")
+    void shouldReturn403ForbiddenWhenAccessingUserListWithoutAdminRole() throws Exception {
+        mockMvc.perform(
+                get("/users/find-all-users"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("Should update user and return 200 OK")
+    @WithMockUser(roles = {"USER", "ADMIN"})
     void shouldUpdateUserAndReturn200OK() throws Exception {
         UpdateUserRequest updateUserRequest = new UpdateUserRequest(regularUser.getUserId(), "Updated User", "updateduser", "newpassword123", "new_email@email.com", "99999999999");
         User updatedUser = User.builder().userId(regularUser.getUserId()).name("Updated User").username("updateduser").profile(Profile.USER).build();
@@ -209,6 +222,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should return 404 Not Found when updating non-existent user")
+    @WithMockUser(roles = {"USER", "ADMIN"})
     void shouldReturn404NotFoundWhenUpdatingNonExistentUser() throws Exception {
         UpdateUserRequest updateUserRequest = new UpdateUserRequest(UUID.randomUUID(), "Non Existent", "nonexistent", "pw", "non@existent.com", "123");
         String errorMessage = "User not found with ID: " + updateUserRequest.userId();
@@ -223,7 +237,33 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 401 Unauthorized when updating user without authentication")
+    void shouldReturn401UnauthorizedWhenUpdatingUserWithoutAuthentication() throws Exception {
+        UpdateUserRequest updateUserRequest = new UpdateUserRequest(regularUser.getUserId(), "Updated User", "updateduser", "newpassword123", "new_email@email.com", "99999999999");
+
+        mockMvc.perform(
+                put("/users/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateUserRequest)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden when updating user without ADMIN or USER role")
+    @WithMockUser(roles = "DIFFERENT_ROLE")
+    void shouldReturn403ForbiddenWhenUpdatingUserWithoutAdminOrUserRole() throws Exception {
+        UpdateUserRequest updateUserRequest = new UpdateUserRequest(regularUser.getUserId(), "Updated User", "updateduser", "newpassword123", "new_email@email.com", "99999999999");
+
+        mockMvc.perform(
+                put("/users/update")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateUserRequest)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @DisplayName("Should delete user and return 204 No Content")
+    @WithMockUser(roles = "ADMIN")
     void shouldDeleteUserAndReturn204NoContent() throws Exception {
         UUID userIdToDelete = regularUser.getUserId();
         doNothing().when(userService).deleteUserById(userIdToDelete);
@@ -236,6 +276,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should return 404 Not Found when deleting non-existent user")
+    @WithMockUser(roles = "ADMIN")
     void shouldReturn404NotFoundWhenDeletingNonExistentUser() throws Exception {
         UUID nonExistentUserId = UUID.randomUUID();
         String errorMessage = "User not found with ID: " + nonExistentUserId;
@@ -246,6 +287,29 @@ class UserControllerTest {
                         .param("userId", nonExistentUserId.toString()))
                 .andExpect(status().isNotFound())
                 .andExpect(content().string(errorMessage));
+    }
+
+    @Test
+    @DisplayName("Should return 401 Unauthorized when deleting user without authentication")
+    void shouldReturn401UnauthorizedWhenDeletingUserWithoutAuthentication() throws Exception {
+        UUID userIdToDelete = regularUser.getUserId();
+
+        mockMvc.perform(
+                delete("/users/delete")
+                        .param("userId", userIdToDelete.toString()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden when deleting user without ADMIN role")
+    @WithMockUser(roles = "USER")
+    void shouldReturn403ForbiddenWhenDeletingUserWithoutAdminRole() throws Exception {
+        UUID userIdToDelete = regularUser.getUserId();
+
+        mockMvc.perform(
+                delete("/users/delete")
+                        .param("userId", userIdToDelete.toString()))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -338,6 +402,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should upload profile picture and return 200 OK")
+    @WithMockUser(roles = {"USER", "ADMIN"})
     void shouldUploadProfilePictureAndReturn200OK() throws Exception {
         UUID userId = regularUser.getUserId();
         MockMultipartFile filePart = new MockMultipartFile(
@@ -360,6 +425,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("Should return 500 when service fails to upload profile picture")
+    @WithMockUser(roles = {"USER", "ADMIN"})
     void shouldReturn500WhenServiceFailsToUploadProfilePicture() throws Exception {
         UUID nonExistentUserId = UUID.randomUUID();
         MockMultipartFile filePart = new MockMultipartFile(

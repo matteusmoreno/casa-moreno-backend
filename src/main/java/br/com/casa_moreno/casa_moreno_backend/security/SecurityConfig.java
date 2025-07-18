@@ -39,9 +39,12 @@ public class SecurityConfig {
                         .requestMatchers("/products/find-by-category", "/products/categories", "/products/{id}", "/promotional").permitAll()
 
                         //USERS
-                        .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()
                         .requestMatchers("/users/{userId}/profile-picture").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/users/username/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/users/find-all-users").hasAnyRole("ADMIN")
+                        .requestMatchers("/users/update").hasAnyRole("ADMIN", "USER")
                         .requestMatchers(HttpMethod.DELETE, "/users/delete/**").hasRole("ADMIN")
+                        .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()
 
                         //AI
                         .requestMatchers(HttpMethod.POST, "/ai/chat").hasAnyRole("ADMIN", "USER")
