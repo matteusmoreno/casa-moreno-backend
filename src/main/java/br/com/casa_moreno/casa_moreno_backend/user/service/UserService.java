@@ -12,6 +12,8 @@ import br.com.casa_moreno.casa_moreno_backend.user.dto.UpdateUserRequest;
 import br.com.casa_moreno.casa_moreno_backend.user.dto.UserDetailsResponse;
 import br.com.casa_moreno.casa_moreno_backend.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -106,25 +109,30 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public User updateUser(UpdateUserRequest request) {
-        User user = userRepository.findById(request.userId())
+    public User updateUser(UpdateUserRequest request) throws AccessDeniedException {
+        User userToUpdate = userRepository.findById(request.userId())
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + request.userId()));
 
-        if (request.name() != null) user.setName(request.name());
-        if (request.username() != null) user.setUsername(request.username());
-        if (request.password() != null) user.setPassword(bCryptPasswordEncoder.encode(request.password()));
-        if (request.email() != null) user.setEmail(request.email());
-        if (request.phone() != null) user.setPhone(request.phone());
+        authorizeAdminOrOwner(userToUpdate.getUsername());
 
-        user.setUpdatedAt(LocalDateTime.now());
-        return userRepository.save(user);
+        if (request.name() != null) userToUpdate.setName(request.name());
+        if (request.username() != null) userToUpdate.setUsername(request.username());
+        if (request.password() != null) userToUpdate.setPassword(bCryptPasswordEncoder.encode(request.password()));
+        if (request.email() != null) userToUpdate.setEmail(request.email());
+        if (request.phone() != null) userToUpdate.setPhone(request.phone());
+
+        userToUpdate.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(userToUpdate);
     }
 
     @Transactional
     public void deleteUserById(UUID userId) {
-        User user = userRepository.findById(userId)
+        User userToDelete = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
-        userRepository.delete(user);
+
+        authorizeAdminOrOwner(userToDelete.getUsername());
+
+        userRepository.delete(userToDelete);
     }
 
     @Transactional
@@ -164,10 +172,10 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public String uploadProfilePicture(UUID userId, MultipartFile file) throws IOException {
-        User user = userRepository.findById(userId)
+        User userToUpdate = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
 
-        String oldFileUrl = user.getProfilePictureUrl();
+        String oldFileUrl = userToUpdate.getProfilePictureUrl();
         if (oldFileUrl != null && !oldFileUrl.isEmpty()) {
             storagePort.deleteFile(oldFileUrl);
         }
@@ -182,8 +190,8 @@ public class UserService implements UserDetailsService {
                 file.getContentType()
         );
 
-        user.setProfilePictureUrl(fileUrl);
-        userRepository.save(user);
+        userToUpdate.setProfilePictureUrl(fileUrl);
+        userRepository.save(userToUpdate);
 
         return fileUrl;
     }
@@ -197,6 +205,26 @@ public class UserService implements UserDetailsService {
             return "";
         }
         return fileName.substring(lastIndexOf + 1);
+    }
+
+    private UserDetails getAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDetails)) {
+            throw new IllegalStateException("No authenticated user found in security context.");
+        }
+        return (UserDetails) authentication.getPrincipal();
+    }
+
+    private boolean isAdmin(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private void authorizeAdminOrOwner(String ownerUsername) throws AccessDeniedException {
+        UserDetails loggedInUser = getAuthenticatedUser();
+        if (!isAdmin(loggedInUser) && !loggedInUser.getUsername().equals(ownerUsername)) {
+            throw new AccessDeniedException("You do not have permission to perform this action.");
+        }
     }
 
     @Override

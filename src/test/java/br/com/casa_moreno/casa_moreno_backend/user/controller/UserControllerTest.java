@@ -18,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -162,6 +163,13 @@ class UserControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 401 Unauthorized when getting user by username without auth")
+    void shouldReturnUnauthorizedForGetUserByUsernameWithoutAuth() throws Exception {
+        mockMvc.perform(get("/users/username").param("username", "someuser"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Should return all users and return 200 OK")
     @WithMockUser(roles = "ADMIN")
     void shouldReturnAllUsersAndReturn200OK() throws Exception {
@@ -218,6 +226,22 @@ class UserControllerTest {
                         .content(objectMapper.writeValueAsString(updateUserRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(updatedUser.getName()));
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden when a USER tries to update another user's profile")
+    @WithMockUser(username = "someOtherUser", roles = "USER")
+    void shouldReturnForbiddenWhenUserTriesToUpdateAnotherUser() throws Exception {
+        UpdateUserRequest updateUserRequest = new UpdateUserRequest(regularUser.getUserId(), "Attempt To Hack", null, null, null, null);
+
+        when(userService.updateUser(any(UpdateUserRequest.class)))
+                .thenThrow(new AccessDeniedException("You do not have permission to perform this action."));
+
+        mockMvc.perform(
+                        put("/users/update")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateUserRequest)))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -306,9 +330,11 @@ class UserControllerTest {
     void shouldReturn403ForbiddenWhenDeletingUserWithoutAdminRole() throws Exception {
         UUID userIdToDelete = regularUser.getUserId();
 
+        doThrow(new AccessDeniedException("Access Denied")).when(userService).deleteUserById(userIdToDelete);
+
         mockMvc.perform(
-                delete("/users/delete")
-                        .param("userId", userIdToDelete.toString()))
+                        delete("/users/delete")
+                                .param("userId", userIdToDelete.toString()))
                 .andExpect(status().isForbidden());
     }
 

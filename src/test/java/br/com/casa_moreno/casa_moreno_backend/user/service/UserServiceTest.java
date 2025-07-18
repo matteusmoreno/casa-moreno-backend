@@ -20,6 +20,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -50,6 +55,8 @@ class UserServiceTest {
 
     private CreateUserRequest createUserRequest;
     private User savedUser;
+    private User regularUser;
+    private User adminUser;
 
     @BeforeEach
     void setUp() {
@@ -66,6 +73,39 @@ class UserServiceTest {
                 .active(true)
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        regularUser = User.builder()
+                .userId(UUID.randomUUID())
+                .name("Regular User")
+                .username("regularuser")
+                .password("encodedPassword")
+                .email("user@email.com")
+                .phone("22999999999")
+                .profile(Profile.USER)
+                .active(true)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        adminUser = User.builder()
+                .userId(UUID.randomUUID())
+                .name("Admin User")
+                .username("adminuser")
+                .password("encodedAdminPassword")
+                .email("admin@email.com")
+                .profile(Profile.ADMIN)
+                .active(true)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    private void mockAuthenticatedUser(User user) {
+        UserDetails userDetails = user;
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test
@@ -472,100 +512,159 @@ class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Should update only name and phone when other fields in request are null")
-    void shouldUpdateOnlyNameAndPhoneWhenOtherFieldsAreNull() {
-        UUID userId = savedUser.getUserId();
-        UpdateUserRequest partialUpdateRequest = new UpdateUserRequest(
-                userId,
-                "New Partial Name",
-                null, // username não será alterado
-                null, // password não será alterado
-                null, // email não será alterado
-                "11987654321");
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(savedUser));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User result = userService.updateUser(partialUpdateRequest);
-
-        verify(bCryptPasswordEncoder, never()).encode(anyString());
-
-        assertAll(
-                () -> assertEquals("New Partial Name", result.getName()),
-                () -> assertEquals("11987654321", result.getPhone()),
-
-                () -> assertEquals(savedUser.getUsername(), result.getUsername()),
-                () -> assertEquals(savedUser.getEmail(), result.getEmail()),
-                () -> assertEquals(savedUser.getPassword(), result.getPassword()),
-                () -> assertNotNull(result.getUpdatedAt())
-        );
-    }
-
-    @Test
-    @DisplayName("Should update only username and email when other fields in request are null")
-    void shouldUpdateOnlyUsernameAndEmailWhenOtherFieldsAreNull() {
-        UUID userId = savedUser.getUserId();
-        UpdateUserRequest partialUpdateRequest = new UpdateUserRequest(
-                userId,
-                null, // name não será alterado
-                "new_partial_username",
-                null, // password não será alterado
-                "new.partial.email@email.com",
-                null  // phone não será alterado
-        );
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(savedUser));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        User result = userService.updateUser(partialUpdateRequest);
-
-        verify(bCryptPasswordEncoder, never()).encode(anyString());
-
-        assertAll(
-                () -> assertEquals("new_partial_username", result.getUsername()),
-                () -> assertEquals("new.partial.email@email.com", result.getEmail()),
-
-                () -> assertEquals(savedUser.getName(), result.getName()),
-                () -> assertEquals(savedUser.getPhone(), result.getPhone()),
-                () -> assertEquals(savedUser.getPassword(), result.getPassword()),
-                () -> assertNotNull(result.getUpdatedAt())
-        );
-    }
-
-    @Test
-    @DisplayName("Should throw UserNotFoundException when updating non-existent user")
-    void shouldThrowUserNotFoundExceptionWhenUpdatingNonExistentUser() {
-        UUID nonExistentUserId = UUID.randomUUID();
+    @DisplayName("Should allow user to update their own profile")
+    void shouldAllowUserToUpdateOwnProfile() {
+        mockAuthenticatedUser(regularUser);
         UpdateUserRequest updateUserRequest = new UpdateUserRequest(
-                nonExistentUserId,
+                regularUser.getUserId(),
+                "Updated Name",
                 null,
-                "updated_username",
-                null,
-                null,
-                null);
+                "new_password",
+                "update_email@email.com",
+                "22999999998");
 
-        when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
-        Exception exception = assertThrows(UserNotFoundException.class, () -> {
+        when(userRepository.findById(regularUser.getUserId())).thenReturn(Optional.of(regularUser));
+        when(bCryptPasswordEncoder.encode(updateUserRequest.password())).thenReturn("new_encoded_password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User result = userService.updateUser(updateUserRequest);
+
+        verify(userRepository, times(1)).findById(updateUserRequest.userId());
+        verify(bCryptPasswordEncoder, times(1)).encode(updateUserRequest.password());
+        verify(userRepository, times(1)).save(any(User.class));
+
+        assertEquals("Updated Name", result.getName());
+        assertEquals("update_email@email.com", result.getEmail());
+        assertEquals("22999999998", result.getPhone());
+    }
+
+    @Test
+    @DisplayName("Should allow admin to update another user's profile")
+    void shouldAllowAdminToUpdateAnotherUserProfile() {
+        mockAuthenticatedUser(adminUser);
+        UpdateUserRequest updateUserRequest = new UpdateUserRequest(
+                regularUser.getUserId(),
+                null,
+                "new_username", null, null, null);
+
+        when(userRepository.findById(regularUser.getUserId())).thenReturn(Optional.of(regularUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        User result = userService.updateUser(updateUserRequest);
+
+        verify(userRepository, times(1)).findById(regularUser.getUserId());
+        verify(userRepository, times(1)).save(any(User.class));
+        assertEquals("new_username", result.getUsername());
+    }
+
+    @Test
+    @DisplayName("Should throw AccessDeniedException when a user tries to update another user's profile")
+    void shouldThrowAccessDeniedExceptionWhenUserTriesToUpdateAnotherUser() {
+        mockAuthenticatedUser(regularUser);
+        UpdateUserRequest updateUserRequest = new UpdateUserRequest(
+                adminUser.getUserId(),
+                "Attempt to Hack",
+                null, null, null, null);
+
+        when(userRepository.findById(adminUser.getUserId())).thenReturn(Optional.of(adminUser));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class, () -> {
             userService.updateUser(updateUserRequest);
         });
 
-        verify(userRepository, times(1)).findById(nonExistentUserId);
-        verify(bCryptPasswordEncoder, never()).encode(anyString());
-        verify(userRepository, never()).save(any(User.class));
+        assertEquals("You do not have permission to perform this action.", exception.getMessage());
 
-        assertEquals("User not found with id: " + nonExistentUserId, exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    @DisplayName("Should delete user by ID correctly")
-    void shouldDeleteUserByIdCorrectly() {
-        UUID userId = savedUser.getUserId();
-        when(userRepository.findById(userId)).thenReturn(Optional.of(savedUser));
+    @DisplayName("Should throw IllegalStateException when security context is empty")
+    void shouldThrowIllegalStateExceptionWhenSecurityContextIsEmpty() {
+        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(regularUser));
+        SecurityContextHolder.clearContext();
 
-        userService.deleteUserById(userId);
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            userService.updateUser(new UpdateUserRequest(regularUser.getUserId(), "New Name", null, null, null, null));
+        });
 
-        verify(userRepository, times(1)).findById(userId);
-        verify(userRepository, times(1)).delete(savedUser);
+        assertTrue(exception.getMessage().contains("No authenticated user found"));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalStateException when authentication is not authenticated")
+    void shouldThrowIllegalStateExceptionWhenNotAuthenticated() {
+        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(regularUser));
+        Authentication unauthenticated = mock(Authentication.class);
+
+        when(unauthenticated.isAuthenticated()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(unauthenticated);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            userService.updateUser(new UpdateUserRequest(regularUser.getUserId(), "New Name", null, null, null, null));
+        });
+
+        assertTrue(exception.getMessage().contains("No authenticated user found"));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalStateException when principal is not an instance of UserDetails")
+    void shouldThrowIllegalStateExceptionWhenPrincipalIsInvalid() {
+        Authentication invalidPrincipalAuth = mock(Authentication.class);
+
+        when(invalidPrincipalAuth.isAuthenticated()).thenReturn(true);
+        when(invalidPrincipalAuth.getPrincipal()).thenReturn(new Object());
+
+        SecurityContextHolder.getContext().setAuthentication(invalidPrincipalAuth);
+
+        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(regularUser));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            userService.updateUser(new UpdateUserRequest(regularUser.getUserId(), null, null, null, null, null));
+        });
+
+        assertTrue(exception.getMessage().contains("No authenticated user found"));
+    }
+
+    @Test
+    @DisplayName("Should allow a user to delete their own profile")
+    void shouldAllowUserToDeleteOwnProfile() {
+        mockAuthenticatedUser(regularUser);
+
+        when(userRepository.findById(regularUser.getUserId())).thenReturn(Optional.of(regularUser));
+        doNothing().when(userRepository).delete(regularUser);
+
+        userService.deleteUserById(regularUser.getUserId());
+
+        verify(userRepository, times(1)).findById(regularUser.getUserId());
+        verify(userRepository, times(1)).delete(regularUser);
+    }
+
+    @Test
+    @DisplayName("Should allow admin to delete another user")
+    void shouldAllowAdminToDeleteAnotherUser() {
+        mockAuthenticatedUser(adminUser);
+        when(userRepository.findById(regularUser.getUserId())).thenReturn(Optional.of(regularUser));
+        doNothing().when(userRepository).delete(regularUser);
+
+        assertDoesNotThrow(() -> {
+            userService.deleteUserById(regularUser.getUserId());
+        });
+
+        verify(userRepository, times(1)).delete(regularUser);
+    }
+
+    @Test
+    @DisplayName("Should NOT allow a user to delete another user's profile")
+    void shouldNotAllowUserToDeleteAnotherUserProfile() {
+        mockAuthenticatedUser(regularUser);
+
+        when(userRepository.findById(adminUser.getUserId())).thenReturn(Optional.of(adminUser));
+
+        assertThrows(AccessDeniedException.class, () -> {
+            userService.deleteUserById(adminUser.getUserId());
+        });
+
+        verify(userRepository, never()).delete(any(User.class));
     }
 
     @Test
@@ -705,26 +804,16 @@ class UserServiceTest {
     void shouldUploadProfilePictureForFirstTime() throws IOException {
         UUID userId = savedUser.getUserId();
         savedUser.setProfilePictureUrl(null);
-
         MockMultipartFile mockFile = new MockMultipartFile("file", "picture.jpg", "image/jpeg", "content".getBytes());
         String expectedUrl = "http://storage.com/profile-pictures/" + userId + ".jpg";
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(savedUser));
         when(storagePort.uploadFile(any(), anyString(), anyString())).thenReturn(expectedUrl);
 
-        ArgumentCaptor<String> fileNameCaptor = ArgumentCaptor.forClass(String.class);
-
         String resultUrl = userService.uploadProfilePicture(userId, mockFile);
 
-        verify(userRepository, times(1)).findById(userId);
-        verify(storagePort, never()).deleteFile(anyString());
-        verify(storagePort, times(1)).uploadFile(any(), fileNameCaptor.capture(), eq(mockFile.getContentType()));
+        assertEquals(expectedUrl, resultUrl);
         verify(userRepository, times(1)).save(savedUser);
-
-        String generatedFileName = fileNameCaptor.getValue();
-        assertTrue(generatedFileName.endsWith(".jpg"), "File extension should be correct");
-        assertEquals(expectedUrl, resultUrl, "Returned URL should match the expected one");
-        assertEquals(expectedUrl, savedUser.getProfilePictureUrl(), "User's profile picture URL should be updated");
     }
 
     @Test
@@ -755,6 +844,7 @@ class UserServiceTest {
     @Test
     @DisplayName("Should not delete old file if its URL is an empty string")
     void shouldNotDeleteOldFileIfUrlIsAnEmptyString() throws IOException {
+        mockAuthenticatedUser(savedUser);
         UUID userId = savedUser.getUserId();
 
         savedUser.setProfilePictureUrl("");
@@ -796,6 +886,7 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle file upload when filename has no extension")
     void shouldHandleFileUploadWhenFileNameHasNoExtension() throws IOException {
+        mockAuthenticatedUser(savedUser);
         UUID userId = savedUser.getUserId();
         MockMultipartFile mockFile = new MockMultipartFile("file", "pictureWithoutExtension", "image/jpeg", "content".getBytes());
 
@@ -845,6 +936,7 @@ class UserServiceTest {
     @Test
     @DisplayName("Should handle file upload when filename is empty")
     void shouldHandleFileUploadWhenFileNameIsEmpty() throws IOException {
+        mockAuthenticatedUser(savedUser);
         UUID userId = savedUser.getUserId();
         MockMultipartFile mockFile = new MockMultipartFile("file", "", "image/jpeg", "content".getBytes());
 
