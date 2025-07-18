@@ -141,6 +141,52 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 503 Service Unavailable when Feign client cannot connect")
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnServiceUnavailableForConnectException() throws Exception {
+        CreateProductRequest createRequest = new CreateProductRequest(
+                "ML123", "http://example.com/product", "New Product", "Description", "Brand",
+                "New", BigDecimal.TEN, BigDecimal.TEN, "10%", 10, BigDecimal.ONE,
+                List.of(), "in stock", "http://affiliate.com", "Electronics", "Gadgets"
+        );
+
+        when(productService.createProduct(any(CreateProductRequest.class)))
+                .thenThrow(new ConnectException("Failed to connect to the external service. Please try again later."));
+
+        mockMvc.perform(
+                        post("/products/create")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().string("Failed to connect to the external service. Please try again later."));
+    }
+
+    @Test
+    @DisplayName("Should return 503 Service Unavailable when Circuit Breaker is open")
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnServiceUnavailableWhenCircuitBreakerIsOpen() throws Exception {
+        CreateProductRequest createRequest = new CreateProductRequest(
+                "ML123", "http://example.com/product", "New Product", "Description", "Brand",
+                "New", BigDecimal.TEN, BigDecimal.TEN, "10%", 10, BigDecimal.ONE,
+                List.of(), "in stock", "http://affiliate.com", "Electronics", "Gadgets"
+        );
+
+        when(productService.createProduct(any(CreateProductRequest.class)))
+                .thenThrow(CallNotPermittedException.createCallNotPermittedException(
+                        io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("mercadoLivreScraper"))
+                );
+
+        mockMvc.perform(
+                        post("/products/create")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().string("The scraper service is external unavailable. Please try again later."));
+
+        verify(productService, times(1)).createProduct(any(CreateProductRequest.class));
+    }
+
+    @Test
     @DisplayName("Should find products by category successfully")
     void shouldFindProductsByCategorySuccessfully() throws Exception {
         String category = "Electronics";
@@ -196,6 +242,7 @@ class ProductControllerTest {
 
     @Test
     @DisplayName("Should list all products successfully")
+    @WithMockUser(roles = "ADMIN")
     void shouldListAllProductsSuccessfully() throws Exception {
         List<Product> products = new ArrayList<>();
         products.add(new Product(UUID.randomUUID(), "ML12345", "https://mercadolivre.com.br/product/12345", "Test Product", "This is a full description of the test product", "Brand", "New", BigDecimal.valueOf(100.00), BigDecimal.valueOf(120.00), "16% OFF", 3, BigDecimal.valueOf(33.33), List.of(new ProductGalleryImageUrl(UUID.randomUUID(), "https://image1.com", null)), "in stock", "https://affiliate-link.com", "Electronics", "Smartphones", false));
@@ -217,7 +264,31 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 401 Unauthorized when unauthenticated user tries to list all products")
+    void shouldReturnUnauthorizedWhenListingAllProductsWithoutAuth() throws Exception {
+        mockMvc.perform(
+                get("/products/list-all")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+
+        verify(productService, never()).listAllProducts();
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden when user with USER role tries to list all products")
+    @WithMockUser(roles = "USER")
+    void shouldReturnForbiddenWhenUserRoleTriesToListAllProducts() throws Exception {
+        mockMvc.perform(
+                get("/products/list-all")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+
+        verify(productService, never()).listAllProducts();
+    }
+
+    @Test
     @DisplayName("Should return empty list when no products exist")
+    @WithMockUser(roles = "ADMIN")
     void shouldReturnEmptyListWhenNoProductsExist() throws Exception {
         when(productService.listAllProducts()).thenReturn(new ArrayList<>());
 
@@ -256,7 +327,7 @@ class ProductControllerTest {
 
         mockMvc.perform(
                 get("/products/{id}", productId)
-                        .accept(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
         verify(productService, times(1)).findProductById(productId);
@@ -264,6 +335,7 @@ class ProductControllerTest {
 
     @Test
     @DisplayName("Should update product successfully")
+    @WithMockUser(roles = "ADMIN")
     void shouldUpdateProductSuccessfully() throws Exception {
         UUID productId = UUID.randomUUID();
         UpdateProductRequest updateRequest = new UpdateProductRequest(
@@ -333,7 +405,73 @@ class ProductControllerTest {
     }
 
     @Test
+    @DisplayName("Should return 401 Unauthorized when unauthenticated user tries to update a product")
+    void shouldReturnUnauthorizedWhenUpdatingProductWithoutAuth() throws Exception {
+        UpdateProductRequest updateRequest = new UpdateProductRequest(
+                UUID.randomUUID(),
+                "ML12345",
+                "https://mercadolivre.com.br/product/12345",
+                "Updated Product",
+                "This is an updated full description of the test product",
+                "Updated Brand",
+                "New",
+                BigDecimal.valueOf(110.00),
+                BigDecimal.valueOf(130.00),
+                "15% OFF",
+                4,
+                BigDecimal.valueOf(27.50),
+                List.of(),
+                "in stock",
+                "https://affiliate-link.com",
+                "Electronics",
+                "Smartphones"
+        );
+
+        mockMvc.perform(
+                        put("/products/update")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isUnauthorized());
+
+        verify(productService, never()).updateProduct(any(UpdateProductRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should return 403 Forbidden when user with USER role tries to update a product")
+    @WithMockUser(roles = "USER")
+    void shouldReturnForbiddenWhenUserRoleTriesToUpdateProduct() throws Exception {
+        UpdateProductRequest updateRequest = new UpdateProductRequest(
+                UUID.randomUUID(),
+                "ML12345",
+                "https://mercadolivre.com.br/product/12345",
+                "Updated Product",
+                "This is an updated full description of the test product",
+                "Updated Brand",
+                "New",
+                BigDecimal.valueOf(110.00),
+                BigDecimal.valueOf(130.00),
+                "15% OFF",
+                4,
+                BigDecimal.valueOf(27.50),
+                List.of(),
+                "in stock",
+                "https://affiliate-link.com",
+                "Electronics",
+                "Smartphones"
+        );
+
+        mockMvc.perform(
+                        put("/products/update")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isForbidden());
+
+        verify(productService, never()).updateProduct(any(UpdateProductRequest.class));
+    }
+
+    @Test
     @DisplayName("Should throw ProductNotFoundException when updating non-existing product")
+    @WithMockUser(roles = "ADMIN")
     void shouldThrowProductNotFoundExceptionWhenUpdatingNonExistingProduct() throws Exception {
         UUID productId = UUID.randomUUID();
         UpdateProductRequest updateRequest = new UpdateProductRequest(
@@ -700,51 +838,5 @@ class ProductControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(productService, times(1)).deleteProductImage(productId, imageUrlToDelete);
-    }
-
-    @Test
-    @DisplayName("Should return 503 Service Unavailable when Feign client cannot connect")
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturnServiceUnavailableForConnectException() throws Exception {
-        CreateProductRequest createRequest = new CreateProductRequest(
-                "ML123", "http://example.com/product", "New Product", "Description", "Brand",
-                "New", BigDecimal.TEN, BigDecimal.TEN, "10%", 10, BigDecimal.ONE,
-                List.of(), "in stock", "http://affiliate.com", "Electronics", "Gadgets"
-        );
-
-        when(productService.createProduct(any(CreateProductRequest.class)))
-                .thenThrow(new ConnectException("Failed to connect to the external service. Please try again later."));
-
-        mockMvc.perform(
-                post("/products/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(content().string("Failed to connect to the external service. Please try again later."));
-    }
-
-    @Test
-    @DisplayName("Should return 503 Service Unavailable when Circuit Breaker is open")
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturnServiceUnavailableWhenCircuitBreakerIsOpen() throws Exception {
-        CreateProductRequest createRequest = new CreateProductRequest(
-                "ML123", "http://example.com/product", "New Product", "Description", "Brand",
-                "New", BigDecimal.TEN, BigDecimal.TEN, "10%", 10, BigDecimal.ONE,
-                List.of(), "in stock", "http://affiliate.com", "Electronics", "Gadgets"
-        );
-
-        when(productService.createProduct(any(CreateProductRequest.class)))
-                .thenThrow(CallNotPermittedException.createCallNotPermittedException(
-                        io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("mercadoLivreScraper"))
-                );
-
-        mockMvc.perform(
-                post("/products/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isServiceUnavailable())
-                .andExpect(content().string("The scraper service is external unavailable. Please try again later."));
-
-        verify(productService, times(1)).createProduct(any(CreateProductRequest.class));
     }
 }
