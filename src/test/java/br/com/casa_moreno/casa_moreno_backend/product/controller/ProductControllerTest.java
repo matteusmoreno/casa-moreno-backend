@@ -11,6 +11,7 @@ import br.com.casa_moreno.casa_moreno_backend.product.dto.UpdateProductRequest;
 import br.com.casa_moreno.casa_moreno_backend.product.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,14 +30,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.math.BigDecimal;
+import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DisplayName("ProductController Tests")
 @ExtendWith(MockitoExtension.class)
@@ -561,5 +562,47 @@ class ProductControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(productService, times(1)).deleteProductImage(productId, imageUrlToDelete);
+    }
+
+    @Test
+    @DisplayName("Should return 503 Service Unavailable when Feign client cannot connect")
+    void shouldReturnServiceUnavailableForConnectException() throws Exception {
+        CreateProductRequest createRequest = new CreateProductRequest(
+                "ML123", "http://example.com/product", "New Product", "Description", "Brand",
+                "New", BigDecimal.TEN, BigDecimal.TEN, "10%", 10, BigDecimal.ONE,
+                List.of(), "in stock", "http://affiliate.com", "Electronics", "Gadgets"
+        );
+
+        when(productService.createProduct(any(CreateProductRequest.class)))
+                .thenThrow(new ConnectException("Failed to connect to the external service. Please try again later."));
+
+        mockMvc.perform(post("/products/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().string("Failed to connect to the external service. Please try again later."));
+    }
+
+    @Test
+    @DisplayName("Should return 503 Service Unavailable when Circuit Breaker is open")
+    void shouldReturnServiceUnavailableWhenCircuitBreakerIsOpen() throws Exception {
+        CreateProductRequest createRequest = new CreateProductRequest(
+                "ML123", "http://example.com/product", "New Product", "Description", "Brand",
+                "New", BigDecimal.TEN, BigDecimal.TEN, "10%", 10, BigDecimal.ONE,
+                List.of(), "in stock", "http://affiliate.com", "Electronics", "Gadgets"
+        );
+
+        when(productService.createProduct(any(CreateProductRequest.class)))
+                .thenThrow(CallNotPermittedException.createCallNotPermittedException(
+                        io.github.resilience4j.circuitbreaker.CircuitBreaker.ofDefaults("mercadoLivreScraper"))
+                );
+
+        mockMvc.perform(post("/products/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isServiceUnavailable()) // Espera o status 503
+                .andExpect(content().string("The scraper service is external unavailable. Please try again later.")); // Espera a mensagem correta
+
+        verify(productService, times(1)).createProduct(any(CreateProductRequest.class));
     }
 }

@@ -25,6 +25,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -132,7 +133,7 @@ class ProductServiceTest {
 
     @Test
     @DisplayName("Should create a product successfully")
-    void shouldCreateProductSuccessfully() {
+    void shouldCreateProductSuccessfully() throws IOException {
         MercadoLivreScraperRequest mercadoLivreScraperRequest = new MercadoLivreScraperRequest(createProductRequest.mercadoLivreUrl());
 
         when(mercadoLivreScraperClient.getProductInfo(mercadoLivreScraperRequest.url()))
@@ -207,7 +208,7 @@ class ProductServiceTest {
 
     @Test
     @DisplayName("Should create product using scraper data as fallback when request data is missing")
-    void shouldCreateProductUsingScraperDataAsFallback() {
+    void shouldCreateProductUsingScraperDataAsFallback() throws IOException {
         CreateProductRequest incompleteRequest = new CreateProductRequest(
                 null,        // mercadoLivreId
                 null,        // mercadoLivreUrl
@@ -262,7 +263,7 @@ class ProductServiceTest {
 
     @Test
     @DisplayName("Should create product with null gallery when both request and scraper galleries are null")
-    void shouldCreateProductWithNullGalleryWhenGalleriesAreNull() {
+    void shouldCreateProductWithNullGalleryWhenGalleriesAreNull() throws IOException {
         CreateProductRequest requestWithNullGallery = new CreateProductRequest(
                 "ML12345", "https://mercadolivre.com.br/product/12345", "Test Product",
                 "Description", "Brand", "New", BigDecimal.TEN, BigDecimal.TEN,
@@ -295,7 +296,7 @@ class ProductServiceTest {
 
     @Test
     @DisplayName("Should create product with empty gallery when request gallery is null and scraper gallery is empty")
-    void shouldCreateProductWithEmptyGalleryWhenRequestIsNullAndScraperIsEmpty() {
+    void shouldCreateProductWithEmptyGalleryWhenRequestIsNullAndScraperIsEmpty() throws IOException {
         CreateProductRequest requestWithNullGallery = new CreateProductRequest(
                 "ML12345", "https://mercadolivre.com.br/product/12345", "Test Product",
                 "Description", "Brand", "New", BigDecimal.TEN, BigDecimal.TEN,

@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ public class ProductService {
     }
 
     @Transactional
-    public Product createProduct(CreateProductRequest request) {
+    public Product createProduct(CreateProductRequest request) throws IOException {
         MercadoLivreScraperResponse scraperResponse = mercadoLivreScraperClient.getProductInfo(request.mercadoLivreUrl());
 
         Product product = Product.builder()
