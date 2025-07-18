@@ -1,7 +1,7 @@
 package br.com.casa_moreno.casa_moreno_backend.ai.controller;
 
-import br.com.casa_moreno.casa_moreno_backend.ai.dtos.ChatRequest;
-import br.com.casa_moreno.casa_moreno_backend.ai.dtos.DescriptionRequest;
+import br.com.casa_moreno.casa_moreno_backend.ai.dto.ChatRequest;
+import br.com.casa_moreno.casa_moreno_backend.ai.dto.DescriptionRequest;
 import br.com.casa_moreno.casa_moreno_backend.ai.service.GeminiService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
