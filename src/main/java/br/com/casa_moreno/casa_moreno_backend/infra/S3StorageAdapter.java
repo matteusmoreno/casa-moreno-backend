@@ -1,7 +1,6 @@
 package br.com.casa_moreno.casa_moreno_backend.infra;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -44,8 +43,18 @@ public class S3StorageAdapter implements StoragePort {
     @Override
     public void deleteFile(String fileUrl) {
         try {
-            // Extrai o 'key' (caminho do arquivo) da URL completa
             URI uri = new URI(fileUrl);
+
+            if (uri.getPath() == null) {
+                System.err.println("URL do arquivo S3 inválida (path nulo): " + fileUrl);
+                return;
+            }
+
+            if (uri.getHost() == null || uri.getPath().isEmpty() || uri.getPath().equals("/")) {
+                System.err.println("URL do arquivo S3 inválida ou malformada, não foi possível extrair a chave: " + fileUrl);
+                return;
+            }
+
             String key = uri.getPath().substring(1); // Remove a barra inicial '/'
 
             DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
