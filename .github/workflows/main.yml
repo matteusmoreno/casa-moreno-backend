@@ -1,29 +1,27 @@
-name: Docker Deploy to EC2 on master push
+name: Deploy Backend to AWS ECS
 
 on:
   push:
     branches:
       - master
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+env:
+  AWS_REGION: us-east-2                   # Sua região da AWS
+  ECR_REPOSITORY: casa-moreno-backend     # O nome do seu repositório no ECR (opcional, mas bom para organização)
+  ECS_SERVICE: casa-moreno-backend-service # O nome do seu serviço no ECS
+  ECS_CLUSTER: casa-moreno-cluster         # O nome do seu cluster no ECS
+  CONTAINER_NAME: casa-moreno-backend-container # O nome do contêiner definido na sua Task Definition
 
+jobs:
+  # Primeiro Job: Builda a imagem Docker e envia para o Docker Hub
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }} # Exporta o nome da imagem para o próximo job
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'corretto'
-
-      - name: Build with Maven
-        run: mvn clean package -DskipTests
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -32,63 +30,45 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
+        id: build-image # Dando um ID a este passo para referenciá-lo depois
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: matteusmoreno/casa-moreno-backend:latest
-          file: ./Dockerfile
+          tags: matteusmoreno/casa-moreno-backend:latest # Sua tag no Docker Hub
 
-      - name: Deploy Docker image to EC2
-        uses: appleboy/ssh-action@v1.0.0
+  # Segundo Job: Fazer o deploy no ECS
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push # Garante que este job só rode se o 'build-and-push' for bem-sucedido
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          timeout: 600s
-          script: |
-            echo "Parando e removendo container Docker antigo (se existir)..."
-            docker ps -q --filter "ancestor=matteusmoreno/casa-moreno-backend" | xargs -r docker stop
-            docker ps -aq --filter "ancestor=matteusmoreno/casa-moreno-backend" | xargs -r docker rm
-            
-            echo "Puxando a nova imagem Docker..."
-            docker pull matteusmoreno/casa-moreno-backend:latest
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-            # --- SCRIPT DE CRIAÇÃO DE ARQUIVO MAIS ROBUSTO ---
-            KEY_FILE_PATH="/home/ec2-user/gcp-key.json"
-            echo "Garantindo que o caminho para a chave esteja limpo..."
-            rm -rf $KEY_FILE_PATH
-            
-            echo "Criando o novo arquivo de credenciais do Google Cloud..."
-            echo '${{ secrets.GCP_SA_KEY }}' > $KEY_FILE_PATH
-            chmod 600 $KEY_FILE_PATH # Define permissões seguras para o arquivo
+      - name: Download ECS Task Definition
+        run: |
+          aws ecs describe-task-definition --task-definition casa-moreno-backend-task --query taskDefinition > task-definition.json
 
-            echo "Rodando a nova imagem Docker..."
-            docker run -d \
-              --name casa-moreno-backend-container \
-              -p 8085:8085 \
-              -e POSTGRES_USERNAME=${{ secrets.POSTGRES_USERNAME }} \
-              -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-              -e EMAIL_GOOGLE_USERNAME=${{ secrets.EMAIL_GOOGLE_USERNAME }} \
-              -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
-              -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-              -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-              -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
-              -e AWS_S3_BUCKET_REGION=${{ secrets.AWS_S3_BUCKET_REGION }} \
-              -e aws.accessKeyId=${{ secrets.AWS_ACCESS_KEY_ID }} \
-              -e aws.secretKey=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-              -v $KEY_FILE_PATH:/app/gcp-key.json \
-              -e GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-key.json \
-              matteusmoreno/casa-moreno-backend:latest
-            
-            echo "Limpando o arquivo de credenciais do servidor EC2..."
-            rm -f $KEY_FILE_PATH
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ needs.build-and-push.outputs.image }}
 
-            echo "Limpando imagens Docker antigas (dangling images)..."
-            docker image prune -f || true
-            
-            echo "Verificando containers Docker em execução..."
-            docker ps -a
-            echo "Verificando logs do container recém-criado (pode demorar um pouco para aparecer)..."
-            sleep 15 # Aumentei um pouco o tempo para a aplicação ter mais tempo de iniciar
-            docker logs casa-moreno-backend-container --tail 100
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
