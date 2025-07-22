@@ -1,24 +1,24 @@
+# Nome do workflow
 name: Deploy Backend to AWS ECS
 
+# Gatilho
 on:
   push:
     branches:
       - master
 
+# Váriaveis de ambiente para o workflow
 env:
-  AWS_REGION: us-east-2                   # Sua região da AWS
-  ECR_REPOSITORY: casa-moreno-backend     # O nome do seu repositório no ECR (opcional, mas bom para organização)
-  ECS_SERVICE: casa-moreno-backend-service # O nome do seu serviço no ECS
-  ECS_CLUSTER: casa-moreno-cluster         # O nome do seu cluster no ECS
-  CONTAINER_NAME: casa-moreno-backend-container # O nome do contêiner definido na sua Task Definition
+  AWS_REGION: us-east-2
+  ECS_SERVICE: casa-moreno-backend-service
+  ECS_CLUSTER: casa-moreno-cluster
+  CONTAINER_NAME: casa-moreno-backend-container
+  IMAGE_NAME: matteusmoreno/casa-moreno-backend # Adicionamos o nome da imagem aqui
 
 jobs:
-  # Primeiro Job: Builda a imagem Docker e envia para o Docker Hub
+  # Job 1: Builda a imagem Docker e envia para o Docker Hub
   build-and-push:
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.build-image.outputs.image }} # Exporta o nome da imagem para o próximo job
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,26 +26,22 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
-        id: build-image # Dando um ID a este passo para referenciá-lo depois
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: matteusmoreno/casa-moreno-backend:latest # Sua tag no Docker Hub
+          tags: ${{ env.IMAGE_NAME }}:latest
 
-  # Segundo Job: Fazer o deploy no ECS
+  # Job 2: Fazer o deploy no ECS
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push # Garante que este job só rode se o 'build-and-push' for bem-sucedido
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
+    steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -57,13 +53,14 @@ jobs:
         run: |
           aws ecs describe-task-definition --task-definition casa-moreno-backend-task --query taskDefinition > task-definition.json
 
+      # --- CORREÇÃO APLICADA AQUI ---
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: task-definition.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ needs.build-and-push.outputs.image }}
+          image: ${{ env.IMAGE_NAME }}:latest # Usamos a variável de ambiente diretamente
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
