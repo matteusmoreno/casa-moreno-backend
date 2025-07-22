@@ -1,7 +1,5 @@
-# Nome do workflow
 name: Deploy Backend to AWS ECS
 
-# Gatilho
 on:
   push:
     branches:
@@ -13,14 +11,12 @@ env:
   ECS_SERVICE: casa-moreno-backend-service
   ECS_CLUSTER: casa-moreno-cluster
   CONTAINER_NAME: casa-moreno-backend-container
-  IMAGE_NAME: matteusmoreno/casa-moreno-backend
+  DOCKER_IMAGE: matteusmoreno/casa-moreno-backend:latest
 
 jobs:
   # Job 1: Builda a imagem Docker e envia para o Docker Hub
   build-and-push:
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ env.IMAGE_NAME }}:${{ github.sha }} # Usamos um tag único por commit
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,12 +28,11 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
-        id: build-image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}, ${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.DOCKER_IMAGE }}
 
   # Job 2: Fazer o deploy no ECS
   deploy:
@@ -56,7 +51,6 @@ jobs:
         run: |
           aws ecs describe-task-definition --task-definition casa-moreno-backend-task --query taskDefinition > task-definition.json
 
-      # --- NOVA LINHA DE CORREÇÃO AQUI ---
       - name: Clean task definition for deployment
         run: |
           jq 'del(.enableFaultInjection)' task-definition.json > task-definition-clean.json
@@ -65,9 +59,9 @@ jobs:
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: task-definition-clean.json # Usamos o arquivo limpo
+          task-definition: task-definition-clean.json
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ needs.build-and-push.outputs.image }}
+          image: ${{ env.DOCKER_IMAGE }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
