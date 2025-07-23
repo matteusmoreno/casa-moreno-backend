@@ -63,3 +63,4 @@ jobs:
         run: |
           echo "Cleaning up old Docker images..."
           docker image prune -f
+  
