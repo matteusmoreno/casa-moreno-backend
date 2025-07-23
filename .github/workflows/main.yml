@@ -9,7 +9,7 @@ env:
   AWS_REGION: us-east-2
   ECS_CLUSTER: casa-moreno-ec2-cluster                  # Nome do seu novo cluster
   ECS_SERVICE: casa-moreno-backend-service              # Nome do seu serviço de backend
-  ECS_TASK_DEFINITION: backend-ec2-task                 # <--- MUDANÇA AQUI: O nome da sua task para EC2
+  ECS_TASK_DEFINITION: casa-moreno-backend-task-ec2                 # <--- MUDANÇA AQUI: O nome da sua task para EC2
   CONTAINER_NAME: casa-moreno-backend-container         # O nome do contêiner definido na sua Task Definition
   DOCKER_IMAGE: matteusmoreno/casa-moreno-backend:latest # O nome da sua imagem no Docker Hub
 
