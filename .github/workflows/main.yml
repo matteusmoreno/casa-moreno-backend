@@ -5,13 +5,13 @@ on:
     branches:
       - master
 
-# Váriaveis de ambiente para o workflow
 env:
   AWS_REGION: us-east-2
-  ECS_SERVICE: casa-moreno-backend-service
-  ECS_CLUSTER: casa-moreno-cluster
-  CONTAINER_NAME: casa-moreno-backend-container
-  DOCKER_IMAGE: matteusmoreno/casa-moreno-backend:latest
+  ECS_CLUSTER: casa-moreno-ec2-cluster                  # Nome do seu novo cluster
+  ECS_SERVICE: casa-moreno-backend-service              # Nome do seu serviço de backend
+  ECS_TASK_DEFINITION: backend-ec2-task                 # <--- MUDANÇA AQUI: O nome da sua task para EC2
+  CONTAINER_NAME: casa-moreno-backend-container         # O nome do contêiner definido na sua Task Definition
+  DOCKER_IMAGE: matteusmoreno/casa-moreno-backend:latest # O nome da sua imagem no Docker Hub
 
 jobs:
   # Job 1: Builda a imagem Docker e envia para o Docker Hub
@@ -49,11 +49,12 @@ jobs:
 
       - name: Download ECS Task Definition
         run: |
-          aws ecs describe-task-definition --task-definition casa-moreno-backend-task --query taskDefinition > task-definition.json
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json
 
       - name: Clean task definition for deployment
         run: |
-          jq 'del(.enableFaultInjection)' task-definition.json > task-definition-clean.json
+          jq 'del(.registeredAt, .registeredBy, .revision, .status, .taskDefinitionArn, .requiresAttributes, .compatibilities, .enableFaultInjection)' task-definition.json > task-definition-clean.json
+
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
