@@ -6,28 +6,23 @@ on:
       - master
 
 env:
-  # Variáveis de ambiente para o Docker Hub
   DOCKER_IMAGE: matteusmoreno/casa-moreno-backend:latest
   CONTAINER_NAME: casa-moreno-backend-container
   HOST_PORT: 8085
   CONTAINER_PORT: 8085
-  # Caminho do arquivo de credenciais Google Cloud na sua instância EC2
-  GOOGLE_CREDENTIALS_PATH: /home/ec2-user/google-credentials.json # <-- Mantenha este caminho ou ajuste se o arquivo estiver em outro local na EC2
+  GOOGLE_CREDENTIALS_PATH: /home/ec2-user/google-credentials.json
 
 jobs:
-  # Job 1: Builda a imagem Docker e envia para o Docker Hub
   build-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -35,56 +30,34 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_IMAGE }}
 
-  # Job 2: Deploy direto na instância EC2 usando Self-Hosted Runner
   deploy-to-ec2:
-    runs-on: self-hosted # <--- MUITO IMPORTANTE: ISSO USARÁ SUA INSTÂNCIA EC2 COMO RUNNER
-    needs: build-and-push # Garante que só roda depois da imagem ser pushada para o Docker Hub
-
+    runs-on: self-hosted
+    needs: build-and-push
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      # Login no Docker Hub a partir do runner da EC2 (necessário para o docker pull)
       - name: Login to Docker Hub from EC2 Runner
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-        # Certifique-se de que o Docker está instalado e o usuário do runner (ec2-user) tem permissões para executar comandos Docker.
-
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
       - name: Stop and Remove Old Container
         run: |
-          # O '|| true' evita que o workflow falhe se o contêiner não estiver rodando ou não existir
           echo "Stopping and removing old container '${{ env.CONTAINER_NAME }}'..."
           docker stop ${{ env.CONTAINER_NAME }} || true
           docker rm ${{ env.CONTAINER_NAME }} || true
-        # Adicione um 'sleep' se a parada do contêiner precisar de mais tempo antes do próximo comando (ex: - run: sleep 5)
-
       - name: Pull New Docker Image
         run: |
           echo "Pulling new image '${{ env.DOCKER_IMAGE }}'..."
           docker pull ${{ env.DOCKER_IMAGE }}
 
-      - name: Run New Docker Container
+      - name: Run New Docker Container (Debug)
         run: |
-          echo "Running new container '${{ env.CONTAINER_NAME }}'..."
-          docker run -d \
-            --name ${{ env.CONTAINER_NAME }} \
-            -p ${{ env.HOST_PORT }}:${{ env.CONTAINER_PORT }} \
-            -e GOOGLE_APPLICATION_CREDENTIALS=${{ env.GOOGLE_CREDENTIALS_PATH }} \
-            # Variáveis de ambiente do seu application.properties
-            -e POSTGRES_USERNAME=${{ secrets.POSTGRES_USERNAME }} \
-            -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-            -e EMAIL_GOOGLE_USERNAME=${{ secrets.EMAIL_GOOGLE_USERNAME }} \
-            -e EMAIL_GOOGLE_PASSWORD=${{ secrets.EMAIL_GOOGLE_PASSWORD }} \
-            -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
-            -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
-            -e AWS_S3_BUCKET_NAME=${{ secrets.AWS_S3_BUCKET_NAME }} \
-            -e AWS_S3_BUCKET_REGION=${{ secrets.AWS_S3_BUCKET_REGION }} \
-            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-            -e GEMINI_PROJECT_ID=${{ secrets.GEMINI_PROJECT_ID }} \
-            -e GEMINI_LOCATION=${{ secrets.GEMINI_LOCATION }} \
-            -e GEMINI_MODEL_NAME=${{ secrets.GEMINI_MODEL_NAME }} \
-            ${{ env.DOCKER_IMAGE }}
+          # Construir o comando em uma variável para inspecionar
+          DOCKER_RUN_COMMAND="docker run -d --name \"${{ env.CONTAINER_NAME }}\" -p \"${{ env.HOST_PORT }}\":\"${{ env.CONTAINER_PORT }}\" -e GOOGLE_APPLICATION_CREDENTIALS=\"${{ env.GOOGLE_CREDENTIALS_PATH }}\" -e POSTGRES_USERNAME=\"${{ secrets.POSTGRES_USERNAME }}\" -e POSTGRES_PASSWORD=\"${{ secrets.POSTGRES_PASSWORD }}\" -e EMAIL_GOOGLE_USERNAME=\"${{ secrets.EMAIL_GOOGLE_USERNAME }}\" -e EMAIL_GOOGLE_PASSWORD=\"${{ secrets.EMAIL_GOOGLE_PASSWORD }}\" -e GOOGLE_CLIENT_ID=\"${{ secrets.GOOGLE_CLIENT_ID }}\" -e GOOGLE_CLIENT_SECRET=\"${{ secrets.GOOGLE_CLIENT_SECRET }}\" -e AWS_S3_BUCKET_NAME=\"${{ secrets.AWS_S3_BUCKET_NAME }}\" -e AWS_S3_BUCKET_REGION=\"${{ secrets.AWS_S3_BUCKET_REGION }}\" -e AWS_ACCESS_KEY_ID=\"${{ secrets.AWS_ACCESS_KEY_ID }}\" -e AWS_SECRET_ACCESS_KEY=\"${{ secrets.AWS_SECRET_ACCESS_KEY }}\" -e GEMINI_PROJECT_ID=\"${{ secrets.GEMINI_PROJECT_ID }}\" -e GEMINI_LOCATION=\"${{ secrets.GEMINI_LOCATION }}\" -e GEMINI_MODEL_NAME=\"${{ secrets.GEMINI_MODEL_NAME }}\" \"${{ env.DOCKER_IMAGE }}\""
+          
+          # Imprimir o comando completo antes de executá-lo
+          echo "DEBUG: Command to be executed: $DOCKER_RUN_COMMAND"
+          
+          # Executar o comando
+          eval "$DOCKER_RUN_COMMAND"
 
       - name: Clean up old Docker images (opcional)
         run: |
