@@ -35,8 +35,6 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_IMAGE }}
 
-  ---
-
   # Job 2: Deploy direto na instância EC2 usando Self-Hosted Runner
   deploy-to-ec2:
     runs-on: self-hosted # <--- MUITO IMPORTANTE: ISSO USARÁ SUA INSTÂNCIA EC2 COMO RUNNER
