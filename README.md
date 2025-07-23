@@ -119,5 +119,5 @@ A API está documentada utilizando **SpringDoc**, que gera uma interface **Swagg
 ```
 /casa-moreno-docs
 ```
- 
+
 A interface permite visualizar todos os endpoints disponíveis, seus parâmetros, respostas esperadas e até mesmo testá-los diretamente, desde que você tenha um token de autenticação válido para as rotas protegidas.
