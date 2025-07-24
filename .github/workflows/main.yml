@@ -60,6 +60,7 @@ jobs:
             --network=casa-moreno-net \
             -p "${{ env.HOST_PORT }}":"${{ env.CONTAINER_PORT }}" \
             -e GOOGLE_APPLICATION_CREDENTIALS="${{ env.GOOGLE_CREDENTIALS_PATH }}" \
+            -v "${{ env.GOOGLE_CREDENTIALS_PATH }}":"${{ env.GOOGLE_CREDENTIALS_PATH }}" \
             -e POSTGRES_USERNAME="${{ secrets.POSTGRES_USERNAME }}" \
             -e POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
             -e EMAIL_GOOGLE_USERNAME="${{ secrets.EMAIL_GOOGLE_USERNAME }}" \
