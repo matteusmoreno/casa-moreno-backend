@@ -38,6 +38,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Login to Docker Hub from EC2 Runner
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Create Docker Network
+        run: docker network create casa-moreno-net || true
+
       - name: Stop and Remove Old Container
         run: |
           echo "Stopping and removing old container '${{ env.CONTAINER_NAME }}'..."
@@ -48,19 +52,30 @@ jobs:
           echo "Pulling new image '${{ env.DOCKER_IMAGE }}'..."
           docker pull ${{ env.DOCKER_IMAGE }}
 
-      - name: Run New Docker Container (Debug)
+      # --- CORRIGIDO ---
+      - name: Run New Docker Container
         run: |
-          # Construir o comando em uma variável para inspecionar
-          DOCKER_RUN_COMMAND="docker run -d --name \"${{ env.CONTAINER_NAME }}\" -p \"${{ env.HOST_PORT }}\":\"${{ env.CONTAINER_PORT }}\" -e GOOGLE_APPLICATION_CREDENTIALS=\"${{ env.GOOGLE_CREDENTIALS_PATH }}\" -e POSTGRES_USERNAME=\"${{ secrets.POSTGRES_USERNAME }}\" -e POSTGRES_PASSWORD=\"${{ secrets.POSTGRES_PASSWORD }}\" -e EMAIL_GOOGLE_USERNAME=\"${{ secrets.EMAIL_GOOGLE_USERNAME }}\" -e EMAIL_GOOGLE_PASSWORD=\"${{ secrets.EMAIL_GOOGLE_PASSWORD }}\" -e GOOGLE_CLIENT_ID=\"${{ secrets.GOOGLE_CLIENT_ID }}\" -e GOOGLE_CLIENT_SECRET=\"${{ secrets.GOOGLE_CLIENT_SECRET }}\" -e AWS_S3_BUCKET_NAME=\"${{ secrets.AWS_S3_BUCKET_NAME }}\" -e AWS_S3_BUCKET_REGION=\"${{ secrets.AWS_S3_BUCKET_REGION }}\" -e AWS_ACCESS_KEY_ID=\"${{ secrets.AWS_ACCESS_KEY_ID }}\" -e AWS_SECRET_ACCESS_KEY=\"${{ secrets.AWS_SECRET_ACCESS_KEY }}\" -e GEMINI_PROJECT_ID=\"${{ secrets.GEMINI_PROJECT_ID }}\" -e GEMINI_LOCATION=\"${{ secrets.GEMINI_LOCATION }}\" -e GEMINI_MODEL_NAME=\"${{ secrets.GEMINI_MODEL_NAME }}\" \"${{ env.DOCKER_IMAGE }}\""
-          
-          # Imprimir o comando completo antes de executá-lo
-          echo "DEBUG: Command to be executed: $DOCKER_RUN_COMMAND"
-          
-          # Executar o comando
-          eval "$DOCKER_RUN_COMMAND"
+          docker run -d \
+            --name "${{ env.CONTAINER_NAME }}" \
+            --network=casa-moreno-net \
+            -p "${{ env.HOST_PORT }}":"${{ env.CONTAINER_PORT }}" \
+            -e GOOGLE_APPLICATION_CREDENTIALS="${{ env.GOOGLE_CREDENTIALS_PATH }}" \
+            -e POSTGRES_USERNAME="${{ secrets.POSTGRES_USERNAME }}" \
+            -e POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}" \
+            -e EMAIL_GOOGLE_USERNAME="${{ secrets.EMAIL_GOOGLE_USERNAME }}" \
+            -e EMAIL_GOOGLE_PASSWORD="${{ secrets.EMAIL_GOOGLE_PASSWORD }}" \
+            -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            -e AWS_S3_BUCKET_NAME="${{ secrets.AWS_S3_BUCKET_NAME }}" \
+            -e AWS_S3_BUCKET_REGION="${{ secrets.AWS_S3_BUCKET_REGION }}" \
+            -e AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+            -e AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+            -e GEMINI_PROJECT_ID="${{ secrets.GEMINI_PROJECT_ID }}" \
+            -e GEMINI_LOCATION="${{ secrets.GEMINI_LOCATION }}" \
+            -e GEMINI_MODEL_NAME="${{ secrets.GEMINI_MODEL_NAME }}" \
+            "${{ env.DOCKER_IMAGE }}"
 
       - name: Clean up old Docker images (opcional)
         run: |
           echo "Cleaning up old Docker images..."
           docker image prune -f
-  
