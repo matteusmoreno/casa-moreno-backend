@@ -622,7 +622,7 @@ class UserServiceTest {
             userService.updateUser(new UpdateUserRequest(regularUser.getUserId(), null, null, null, null, null));
         });
 
-        assertTrue(exception.getMessage().contains("No authenticated user found"));
+        assertTrue(exception.getMessage().contains("Principal is not of a recognized type"));
     }
 
     @Test

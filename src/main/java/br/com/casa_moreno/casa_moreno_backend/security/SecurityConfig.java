@@ -26,9 +26,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        // COLOCAR O permitAll DEPOIS DOS ENDPOINTS QUE PRECISAM DE AUTENTICAÇÃO SENÃO DÁ UMA PICA DO CARALHO
         return http
                 .authorizeHttpRequests(authorize -> authorize
+                        // PRODUCTS
                         .requestMatchers("/products/create").hasRole("ADMIN")
                         .requestMatchers("/products/update").hasRole("ADMIN")
                         .requestMatchers("/products/delete/**").hasRole("ADMIN")
@@ -38,33 +38,26 @@ public class SecurityConfig {
                         .requestMatchers("/products/{id}/images/delete").hasRole("ADMIN")
                         .requestMatchers("/products/find-by-category", "/products/categories", "/products/{id}", "/promotional").permitAll()
 
-                        //USERS
+                        // USERS
                         .requestMatchers("/users/{userId}/profile-picture").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers("/users/username/**").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers("/users/username").hasAnyRole("ADMIN", "USER")
                         .requestMatchers("/users/find-all-users").hasAnyRole("ADMIN")
-                        .requestMatchers("/users/update").hasAnyRole("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.DELETE, "/users/delete/**").hasRole("ADMIN")
-                        .requestMatchers("/users/create", "/users/forgot-password/**", "/users/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/users/update").hasAnyRole("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.DELETE, "/users/delete").hasRole("ADMIN")
+                        .requestMatchers("/users/create", "/users/forgot-password", "/users/reset-password").permitAll()
 
-                        //AI
+                        // AI
                         .requestMatchers(HttpMethod.POST, "/ai/chat").hasAnyRole("ADMIN", "USER")
                         .requestMatchers(HttpMethod.POST, "/ai/organize-description").hasRole("ADMIN")
 
-                        //GLOBAL
+                        // GLOBAL
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/actuator/info").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/actuator/prometheus").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui/**", "/v3/api-docs/**", "/casa-moreno-docs/**").permitAll()
-                        .requestMatchers("/login/oauth2/**").permitAll()
-                        .requestMatchers("/oauth2/**").permitAll()
+                        .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
 
                         .anyRequest().authenticated())
-
-
-                .oauth2Login(oauth2 -> {
-                    oauth2.successHandler(customOAuth2AuthenticationSuccessHandler);
-                })
+                .oauth2Login(oauth2 -> oauth2.successHandler(customOAuth2AuthenticationSuccessHandler))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf -> csrf.disable())

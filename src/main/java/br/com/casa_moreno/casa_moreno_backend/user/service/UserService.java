@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -209,10 +210,25 @@ public class UserService implements UserDetailsService {
 
     private UserDetails getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof UserDetails)) {
+
+        if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalStateException("No authenticated user found in security context.");
         }
-        return (UserDetails) authentication.getPrincipal();
+
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof UserDetails) {
+            return (UserDetails) principal;
+        }
+
+        if (principal instanceof Jwt) {
+            Jwt jwt = (Jwt) principal;
+            String username = jwt.getSubject();
+            return userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UserNotFoundException("User not found with username from token: " + username));
+        }
+
+        throw new IllegalStateException("Principal is not of a recognized type (UserDetails or Jwt).");
     }
 
     private boolean isAdmin(UserDetails userDetails) {

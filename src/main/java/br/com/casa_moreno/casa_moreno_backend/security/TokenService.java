@@ -20,7 +20,7 @@ public class TokenService {
     public String generateToken(User user) {
         Instant expiresAt = Instant.now().plusSeconds(60 * 60 * 24); // Token válido por 24 horas
 
-         JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(user.getUsername())
                 .claim("userId", user.getUserId().toString())
                 .claim("scope", user.getProfile().name())
