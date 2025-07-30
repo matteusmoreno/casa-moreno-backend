@@ -52,7 +52,6 @@ jobs:
           echo "Pulling new image '${{ env.DOCKER_IMAGE }}'..."
           docker pull ${{ env.DOCKER_IMAGE }}
 
-      # --- CORRIGIDO ---
       - name: Run New Docker Container
         run: |
           docker run -d \
