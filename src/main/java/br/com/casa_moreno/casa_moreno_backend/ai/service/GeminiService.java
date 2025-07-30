@@ -41,7 +41,7 @@ public class GeminiService {
 
     public String organizeProductDescription(String rawDescription) throws IOException {
         String prompt = "A partir desta descrição de produto apenas formate o texto para ficar mais visível e amigável para uma pessoa ler. " +
-                "Não invente nenhuma informação. Não tente deixar em negrito pois não é possível. Não utiize emojis apenas utilize as informações do texto e formate-o" +
+                "Não invente nenhuma informação. Não tente deixar em negrito pois não é possível. Não utiize emojis apenas utilize as informações do texto e formate-o" + "Não mande comentários, apenas a descrição do produto" +
                 "A descrição é: " + rawDescription;
 
         return generateText(geminiModelName, prompt);
