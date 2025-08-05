@@ -57,11 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/login/oauth2/**", "/oauth2/**").permitAll()
 
                         .anyRequest().authenticated())
-                .oauth2Login(oauth2 -> oauth2
-                        .successHandler(customOAuth2AuthenticationSuccessHandler)
-                        .redirectionEndpoint(redirection -> redirection
-                                .baseUri("/auth/callback"))
-                )
+                .oauth2Login(oauth2 -> oauth2.successHandler(customOAuth2AuthenticationSuccessHandler))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf -> csrf.disable())
